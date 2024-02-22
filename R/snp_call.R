@@ -16,6 +16,7 @@
 #' @param min_sites_covered The minimum number of sites that must be covered by
 #'  a cell_group to be included in the tree.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
+#' @param cleanup Whether to clean up the temporary files after execution.
 #'
 #' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
 #'  our mixed species reference with species prefixes on chromosomes, mm10 is
@@ -139,7 +140,7 @@ get_snp_tree <- function(cellid_bam_table,
 #' @param dist_tree A hclust tree output from get_snp_tree()
 #' @param group_col_name The name of the column in the Seurat object that was
 #'  used when assigning cells to groups for get_snp_tree()
-#' @param control_group The name of the control group. If this is not NULL,
+#' @param normal_groups The name of the control group(s). If this is not NULL,
 #'  then the group containing the control will be labeled "normal" and the
 #'  other group(s) will be labeled "tumor".
 #' @param cut_n_groups The number of groups to cut the tree into.
@@ -410,6 +411,7 @@ pick_ploidy <- function(ploidy) {
 #' @param submit Whether to submit the job to slurm
 #' @param account The cluster account to use in the slurm script
 #' @param slurm_out The name of the slurm output file
+#' @param sbatch_base The prefix to use with the sbatch job file
 #' @param cleanup Whether to delete the bcfs after merging
 #'
 #' @return 0 if successful
@@ -531,9 +533,8 @@ match_celltype_clusters <- function(sobject,
         sobject@meta.data %>%
         dplyr::select(dplyr::all_of(c(cluster_col, celltype_col))) %>%
         dplyr::group_by(dplyr::across(dplyr::all_of(cluster_col))) %>%
-        dplyr::filter(sum(get(celltype_col) %in%
-                                                   control_celltypes) /
-                                               dplyr::n() > min_prop_control) %>%
+        dplyr::filter(sum(get(celltype_col) %in% normal_celltypes) /
+                      dplyr::n() > min_prop_control) %>%
         dplyr::pull(cluster_col) %>%
         unique()
 

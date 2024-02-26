@@ -380,7 +380,8 @@ call_snps <- function(cellid_bam_table,
 #' @return A string that can be passed to use_sbatch_template() to fill in
 #'  placeholder_ploidy
 #' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
-#' species reference with species prefixes on chromosomes, mm10 is mm10
+#' species reference with species prefixes on chromosomes, mm10_hg38 is our
+#' mixed reference from 10x, mm10 is mm10
 pick_ploidy <- function(ploidy) {
     if (file.exists(ploidy)) {
         return(paste("--ploidy-file", ploidy))

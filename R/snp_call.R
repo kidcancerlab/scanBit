@@ -198,7 +198,7 @@ confirm_conda_env <- function() {
     if (system("conda env list | grep rrrSingleCellUtils_py3_10",
                ignore.stdout = TRUE) != 0) {
         conda_yml_file <-
-            paste0(find.package("rrrSingleCellUtils"),
+            paste0(find.package("rrrSnvs"),
                    "/py3_10.yml")
         message("Creating required conda environment rrrSingleCellUtils_py3_10")
         system(paste0("conda env create -n rrrSingleCellUtils_py3_10 --file ",
@@ -301,7 +301,7 @@ call_snps <- function(cellid_bam_table,
     # in a template and substituting out the placeholder fields
     # write the bam files to a subfolder for each source bam
     py_file <-
-        paste0(find.package("rrrSingleCellUtils"),
+        paste0(find.package("rrrSnvs"),
                "/exec/getBarcodesFromBam.py")
 
     replace_tibble_split <-
@@ -384,12 +384,12 @@ call_snps <- function(cellid_bam_table,
 pick_ploidy <- function(ploidy) {
     if (file.exists(ploidy)) {
         return(paste("--ploidy-file", ploidy))
-    } else if (file.exists(paste0(find.package("rrrSingleCellUtils"),
+    } else if (file.exists(paste0(find.package("rrrSnvs"),
                                   "/extdata/",
                                   ploidy,
                                   "_ploidy.txt"))) {
         return(paste0("--ploidy-file ",
-                      find.package("rrrSingleCellUtils"),
+                      find.package("rrrSnvs"),
                       "/extdata/",
                       ploidy,
                       "_ploidy.txt"))
@@ -424,7 +424,7 @@ merge_bcfs <- function(bcf_in_dir,
                        sbatch_base = "sbatch_",
                        cleanup = TRUE) {
     py_file <-
-        paste0(find.package("rrrSingleCellUtils"),
+        paste0(find.package("rrrSnvs"),
                "/exec/vcfToMatrix.py")
 
     # use template to merge bcfs and write out a distance matrix, substituting

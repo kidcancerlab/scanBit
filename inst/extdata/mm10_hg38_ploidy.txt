@@ -1,0 +1,6 @@
+GRCh38_chrM 1 16569 M 1
+GRCh38_chrM 1 16569 F 1
+mm10___chrM	1 16299 M 1
+mm10___chrM 1 16299 F 1
+* * * M 2
+* * * F 2

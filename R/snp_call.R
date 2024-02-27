@@ -262,6 +262,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
 #' @param bam_out_dir The directory to write the bam files to
 #' @param bcf_dir The directory to write the bcf files to
 #' @param slurm_base The base name for the slurm output files. Don't include path
+#' @param sbatch_base The prefix to use with the sbatch job file
 #' @param account The hpc account to use in slurm scripts
 #' @param ploidy The ploidy of the organism. See details for more information
 #' @param ref_fasta The reference fasta file to use

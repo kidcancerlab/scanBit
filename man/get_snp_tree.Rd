@@ -46,6 +46,8 @@ the ploidy.}
 a cell_group to be included in the tree.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
+
+\item{cleanup}{Whether to clean up the temporary files after execution.}
 }
 \value{
 A hclust tree

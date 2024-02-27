@@ -1,8 +1,8 @@
 ---
-title: "Basics of {rrrSingleCellUtils}"
+title: "Basics of {rrrSnvs}"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Basics of rrrSingleCellUtils}
+  %\VignetteIndexEntry{Basics of rrrSnvs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

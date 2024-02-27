@@ -1,4 +1,4 @@
 library(testthat)
-library(rrrSingleCellUtils)
+library(rrrSnvs)
 
-test_check("rrrSingleCellUtils")
+test_check("rrrSnvs")

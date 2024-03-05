@@ -79,7 +79,7 @@ get_snp_tree <- function(cellid_bam_table,
                       bcf_dir = paste0(temp_dir,
                                        "/split_bcfs_",
                                        i),
-                      slurm_base = paste0(slurm_base, "_mpileup-%j.out"),
+                      slurm_base = slurm_base,
                       sbatch_base = sbatch_base,
                       account = account,
                       ploidy = ploidy,
@@ -309,7 +309,7 @@ call_snps <- function(cellid_bam_table,
         dplyr::tribble(
             ~find,                      ~replace,
             "placeholder_account",      account,
-            "placeholder_slurm_out",    slurm_base,
+            "placeholder_slurm_out",    paste0(slurm_base, "_splitbams-%j.out"),
             "placeholder_cell_file",    cell_file,
             "placeholder_bam_file",     bam_to_use,
             "placeholder_bam_dir",      paste0(bam_out_dir, "/"),
@@ -344,16 +344,16 @@ call_snps <- function(cellid_bam_table,
 
         replace_tibble_snp <-
             dplyr::tribble(
-                ~find,                      ~replace,
-                "placeholder_account",      account,
-                "placeholder_slurm_out",    slurm_base,
-                "placeholder_array_max",    as.character(array_max),
-                "placeholder_bam_dir",      bam_out_dir,
-                "placeholder_ref_fasta",    ref_fasta,
-                "placeholder_ploidy",       ploidy,
-                "placeholder_bam_file",     bam_to_use,
-                "placeholder_bcf_dir",      paste0(bcf_dir, "_c", this_min_depth),
-                "placeholder_min_depth",    as.character(this_min_depth)
+                ~find,                    ~replace,
+                "placeholder_account",    account,
+                "placeholder_slurm_out",  paste0(slurm_base, "_mpileup-%j.out"),
+                "placeholder_array_max",  as.character(array_max),
+                "placeholder_bam_dir",    bam_out_dir,
+                "placeholder_ref_fasta",  ref_fasta,
+                "placeholder_ploidy",     ploidy,
+                "placeholder_bam_file",   bam_to_use,
+                "placeholder_bcf_dir",    paste0(bcf_dir, "_c", this_min_depth),
+                "placeholder_min_depth",  as.character(this_min_depth)
             )
 
         # Call mpileup on each split_bams folder using a template and substituting

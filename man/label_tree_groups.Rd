@@ -10,7 +10,8 @@ label_tree_groups(
   group_col_name = "used_clusters",
   normal_groups,
   cut_n_groups = NULL,
-  cut_dist = NULL
+  cut_dist = NULL,
+  tumor_call_column = "snp_tumor_call"
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ other group(s) will be labeled "tumor".}
 
 \item{cut_dist}{The distance to cut the tree at. This can be derived from the
 y-axis of plotting the output from get_snp_tree().}
+
+\item{tumor_call_column}{The name of the column to use for the tumor call}
 }
 \value{
 A Seurat object with a new columns in the metadata slot called

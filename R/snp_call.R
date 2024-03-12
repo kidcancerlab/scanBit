@@ -146,6 +146,7 @@ get_snp_tree <- function(cellid_bam_table,
 #' @param cut_n_groups The number of groups to cut the tree into.
 #' @param cut_dist The distance to cut the tree at. This can be derived from the
 #'  y-axis of plotting the output from get_snp_tree().
+#' @param tumor_call_column The name of the column to use for the tumor call
 #'
 #' @return A Seurat object with a new columns in the metadata slot called
 #'  tree_group and, if control_group is not NULL, snp_tumor_call.
@@ -161,7 +162,12 @@ label_tree_groups <- function(sobject,
                               group_col_name = "used_clusters",
                               normal_groups,
                               cut_n_groups = NULL,
-                              cut_dist = NULL) {
+                              cut_dist = NULL,
+                              tumor_call_column = "snp_tumor_call") {
+    if (tumor_call_column %in% colnames(sobject@meta.data)) {
+        stop("tumor_call_column already exists in sobject, ",
+             "either remove it or choose a different name")
+    }
     tree_groups <-
         stats::cutree(dist_tree,
                       k = cut_n_groups,
@@ -176,10 +182,12 @@ label_tree_groups <- function(sobject,
         tree_groups <-
             tree_groups %>%
             dplyr::group_by(tree_group) %>%
-            dplyr::mutate(snp_tumor_call = ifelse(any(normal_groups %in%
-                                                   get(group_col_name)),
-                                                  "normal",
-                                                  "tumor"))
+            dplyr::mutate("{tumor_call_column}" :=
+                            ifelse(any(normal_groups %in% get(group_col_name)),
+                                       "normal",
+                                       "tumor")) %>%
+            dplyr::ungroup() %>%
+            dplyr::select(-tree_group)
     }
     sobj_out <-
         sobject@meta.data %>%
@@ -251,6 +259,11 @@ check_cellid_bam_table <- function(cellid_bam_table) {
     if (any(stringr::str_detect(cellid_bam_table$cell_group, " ")) ||
         any(stringr::str_detect(cellid_bam_table$bam_file, " "))) {
         stop("Neither cell_group nor bam_file should not contain spaces")
+    }
+
+    # check that all cell_groups start with a letter
+    if (!all(stringr::str_detect(cellid_bam_table$cell_group, "^[A-Za-z]"))) {
+        stop("All cell_groups should start with a letter")
     }
     return(0)
 }

@@ -496,6 +496,22 @@ calc_tree <- function(matrix_file,
         purrr::keep(~.x > min_sites) %>%
         names()
 
+    min_groups <- 3
+    if (length(names) < min_groups) {
+        message("There are fewer than ", min_groups, " groups with more than ",
+                min_sites, " variants covered. This is too few to make a tree.")
+        message("You may need to either lower min_sites or cluster your sample",
+                "differently to get more cells per cluster. Number of variants",
+                " per cluster:")
+        print(read.table(counts_file,
+                   header = TRUE,
+                   row.names = 1,
+                   sep = "\t") %>%
+            as.matrix() %>%
+            diag())
+        stop()
+    }
+
     # read in the distance matrix and make a tree
     dist_tree <-
         read.table(matrix_file,

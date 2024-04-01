@@ -228,6 +228,11 @@ check_cellid_bam_table <- function(cellid_bam_table) {
         stop("Columns should include cell_id, cell_group and bam_file")
     }
 
+    # Check that there are more than one group in cell_group
+    if (length(unique(cellid_bam_table$cell_group)) < 2) {
+        stop("There should be more than one group in cell_group")
+    }
+
     # Check that there is data in the table
     if (nrow(cellid_bam_table) == 0) {
         stop("No data in cellid_bam_table")
@@ -497,7 +502,7 @@ calc_tree <- function(matrix_file,
         names()
 
     min_groups <- 3
-    if (length(names) < min_groups) {
+    if (length(high_counts) < min_groups) {
         message("There are fewer than ", min_groups, " groups with more than ",
                 min_sites, " variants covered. This is too few to make a tree.")
         message("You may need to either lower min_sites or cluster your sample",
@@ -509,7 +514,7 @@ calc_tree <- function(matrix_file,
                    sep = "\t") %>%
             as.matrix() %>%
             diag())
-        stop()
+        return(NULL)
     }
 
     # read in the distance matrix and make a tree

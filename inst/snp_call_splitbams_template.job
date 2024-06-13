@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=200G
+#SBATCH --mem=80G
 #SBATCH --partition=general,himem
 #SBATCH --wait
 #SBATCH --time=1-00:00:00

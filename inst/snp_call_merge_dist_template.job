@@ -5,7 +5,8 @@
 #SBATCH --job-name rrr_merge
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=10G
 #SBATCH --partition=himem,general
 #SBATCH --wait
 #SBATCH --time=1-00:00:00

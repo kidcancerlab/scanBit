@@ -41,7 +41,7 @@ use_sbatch_template <- function(replace_tibble,
                                 warning_label = "",
                                 submit = TRUE) {
     sbatch_template <-
-        readr::read_file(paste0(find.package("rrrSingleCellUtils"),
+        readr::read_file(paste0(find.package("rrrSnvs"),
                                 "/",
                                 template))
 

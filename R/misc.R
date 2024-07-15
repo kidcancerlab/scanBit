@@ -82,7 +82,7 @@ check_cmd <- function(cmd) {
     if (Sys.which(cmd) == "") {
         stop(paste(cmd,
                    "command not found, do you need to load a module or add",
-                   " this to your PATH?"))
+                   "this to your PATH?"))
     }
     return(0)
 }

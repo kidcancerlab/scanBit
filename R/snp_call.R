@@ -45,7 +45,7 @@ get_snp_tree <- function(cellid_bam_table,
 
     ## Check that the conda command is available
     check_cmd("conda")
-    # Check that conda environment rrrSingleCellUtils_py3_10 exists, and if not,
+    # Check that conda environment rrrSNVs_xkcd_1337 exists, and if not,
     # create it
     confirm_conda_env()
 
@@ -203,13 +203,13 @@ label_tree_groups <- function(sobject,
 
 #' Confirm conda environment and create it if it doesn't exist
 confirm_conda_env <- function() {
-    if (system("conda env list | grep rrrSingleCellUtils_py3_10",
+    if (system("conda env list | grep rrrSNVs_xkcd_1337",
                ignore.stdout = TRUE) != 0) {
         conda_yml_file <-
             paste0(find.package("rrrSnvs"),
-                   "/py3_10.yml")
-        message("Creating required conda environment rrrSingleCellUtils_py3_10")
-        system(paste0("conda env create -n rrrSingleCellUtils_py3_10 --file ",
+                   "/conda.yml")
+        message("Creating required conda environment rrrSNVs_xkcd_1337")
+        system(paste0("conda env create -n rrrSNVs_xkcd_1337 --file ",
                       conda_yml_file))
     }
     return()

@@ -31,7 +31,7 @@ ml load SAMtools/1.15
 
 ml load Miniconda3/4.9.2
 eval "$(conda shell.bash hook)"
-conda activate rrrSingleCellUtils_py3_10
+conda activate rrrSNVs_xkcd_1337
 
 python placeholder_py_file \
     --cells ${cell_file} \

@@ -27,12 +27,17 @@ parser.add_argument('--max_prop_missing',
                     type = float,
                     default = 0.9,
                     help = 'max proportion of missing data allowed at a single locus')
+parser.add_argument('--n_bootstrap',
+                    type = int,
+                    default = 1000,
+                    help = 'number of bootstrap samples to use')
+parser.add_argument('--bootstrap_threshold',
+                    type = float,
+                    default = 0.95,
+                    help = 'threshold for collapsing clusters')
 parser.add_argument('--verbose',
                     action = 'store_true',
                     help = 'print out extra information')
-parser.add_argument('--trim_path',
-                    action = 'store_true',
-                    help = 'trim path from sample names')
 parser.add_argument('--processes',
                     '-p',
                     type = int,
@@ -46,9 +51,9 @@ args = parser.parse_args()
 
 def main():
     differences, samples = get_diff_matrix_from_bcf(
-    bcf_in = args.bcf,
-    min_snvs_for_sample = args.min_snvs_for_sample,
-    max_prop_missing = args.max_prop_missing)
+        bcf_in = args.bcf,
+        min_snvs_for_sample = args.min_snvs_for_sample,
+        max_prop_missing = args.max_prop_missing)
     # test
     # differences, samples = get_diff_matrix_from_bcf(
     #     #'/gpfs0/scratch/mvc002/testMouse/six_merged.bcf',
@@ -59,20 +64,15 @@ def main():
 
     hclust_out = hierarchical_clustering(prop_diff_matrix)
 
-    og_clusters = get_cluster_members(hclust_out, len(samples))
-    #dendrogram(hclust_out)
-
-    #dend_plot = dendrogram(hclust_out, labels=samples)
-    # Save the dendrogram plot
-    plt.savefig(args.out_base + '_dendrogram.png')
+    original_clusters = get_cluster_members(hclust_out, len(samples))
 
     # Do bootstrapping
     # import time
     # start_time = time.time()
     bootstrap_clusters = get_bootstrap_cluster_members(
         differences,
-        n_bootstrap=100,
-        threads = 40)
+        n_bootstrap=args.n_bootstrap,
+        threads=args.processes)
     # end_time = time.time()
     # Looks to be ~50G per thread
     # 35 seconds - 10 bootstrap samples, 30 threads
@@ -86,18 +86,21 @@ def main():
 
     # print(f"Elapsed time: {elapsed_time} seconds")
 
-    bootstrap_values = calculate_bootstrap_values(og_clusters, bootstrap_clusters)
+    bootstrap_values = calculate_bootstrap_values(original_clusters,
+                                                  bootstrap_clusters)
 
     plot_dendro_with_bootstrap_values(hclust_out, bootstrap_values, samples)
     plt.savefig(args.out_base + '_dendrogram.png')
 
-    collapsed_clusters = collapse_clusters(og_clusters,
-                                        bootstrap_values,
-                                        threshold=0.95)
+    collapsed_clusters = collapse_clusters(original_clusters,
+                                           bootstrap_values,
+                                           threshold=args.bootstrap_threshold)
 
     clusters_with_names = [[str(samples[x]) for x in cluster] for cluster in collapsed_clusters]
 
-    return(clusters_with_names)
+    for i in range(len(clusters_with_names)):
+        for sample in clusters_with_names[i]:
+            print(f"{sample}\t{i}")
 
 
 ########
@@ -117,17 +120,20 @@ def get_diff_matrix_from_bcf(bcf_file,
     samples = tuple(bcf_in.header.samples)
     records = tuple(x for x in list(bcf_in.fetch()) if (len(x.alts) == 1))
     bcf_in.close()
+
     # Precompute the genotype tuples for all samples
     genotype_tuples = np.array([
         [tuple(pad_len_1_genotype(rec.samples[sample]['GT'])) for sample in samples]
         for rec in records
     ])
+
     # Convert genotype tuples to strings and look up in dist_key_dict
     genotype_matrix = np.array([
         [dist_key_dict.get(''.join(map(str, gt)), np.nan) for gt in sample_genotypes]
         for sample_genotypes in genotype_tuples
     ])
-    # I should filter out variant positions seen in less than x% of samples
+
+    # Filter out variant positions seen in less than x% of samples
     percent_missing = np.sum(np.isnan(genotype_matrix), axis=1) / len(samples)
     genotype_matrix = genotype_matrix[percent_missing <= max_prop_missing]
     differences = np.abs(genotype_matrix[:, :, np.newaxis] 
@@ -185,12 +191,10 @@ def bootstrap_worker(rand_seed):
     np.random.seed(rand_seed)
     return get_one_bootstrap_cluster_members(differences)
 
-def get_bootstrap_cluster_members(differences, n_bootstrap = 10, threads = 1):
-    # bootstrap_clusters = []
+def get_bootstrap_cluster_members(n_bootstrap = args.n_bootstrap,
+                                  threads = args.processes):
     with multiprocessing.Pool(processes=threads) as pool:
         bootstrap_clusters = pool.map(bootstrap_worker, range(n_bootstrap))
-    # for _ in range(n_bootstrap):
-    #     bootstrap_clusters.append(get_one_bootstrap_cluster_members(differences))
     return bootstrap_clusters
 
 def get_one_bootstrap_cluster_members(differences):
@@ -230,11 +234,15 @@ def plot_dendro_with_bootstrap_values(hclust, bootstrap_values, samples):
         plt.text(x, y, f'{support:.2f}%', va='bottom', ha='center', fontsize=6)
     plt.show()
 
-def collapse_clusters(true_clusters, bootstrap_values, threshold = 0.95):
+def collapse_clusters(true_clusters,
+                      bootstrap_values,
+                      threshold = args.bootstrap_threshold):
     parent_dict = {'none': 'not a cluster'}
     # loop over each cluster, starting with the largest
     for cluster_num in range(len(bootstrap_values) - 1, -1, -1):
-        parent_is_cluster = is_parent_a_cluster(parent_dict, cluster_num, true_clusters)
+        parent_is_cluster = is_parent_a_cluster(parent_dict,
+                                                cluster_num,
+                                                true_clusters)
         my_bootstrap = bootstrap_values[cluster_num]
         if (my_bootstrap > threshold) and not parent_is_cluster:
             parent_dict[cluster_num] = 'not a cluster'
@@ -245,7 +253,7 @@ def collapse_clusters(true_clusters, bootstrap_values, threshold = 0.95):
         elif (my_bootstrap < threshold) and parent_is_cluster:
             parent_dict[cluster_num] = parent_dict[find_parent_node(cluster_num, true_clusters)]
         else:
-            raise ValueError(f"Cluster {cluster_num} did not meet any criteria. This shouldn't be possible but here we are")
+            raise ValueError(f"Cluster {cluster_num} did not meet any criteria. This shouldn't be possible, but here we are")
     clusters = set(parent_dict.values())
     clusters.remove('not a cluster')
     return [true_clusters[x] for x in clusters]
@@ -271,7 +279,4 @@ def is_parent_a_cluster(parent_dict, node_id, true_clusters):
 ### main
 
 if __name__ == '__main__':
-    sample_clusters = main()
-    for i in range(len(sample_clusters)):
-        for sample in sample_clusters[i]:
-            print(f"{sample}\t{i}")
+    main()

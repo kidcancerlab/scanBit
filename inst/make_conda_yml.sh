@@ -2,6 +2,6 @@
 conda create -y -n rrrSNVs_xkcd_1337 python=3.12
 conda activate rrrSNVs_xkcd_1337
 
-pip install pysam numpy pandas
+pip install pysam numpy pandas matplotlib scipy
 
 conda env export > inst/conda.yml

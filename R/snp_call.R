@@ -201,20 +201,6 @@ label_tree_groups <- function(sobject,
     return(sobj_out)
 }
 
-#' Confirm conda environment and create it if it doesn't exist
-confirm_conda_env <- function() {
-    if (system("conda env list | grep rrrSNVs_xkcd_1337",
-               ignore.stdout = TRUE) != 0) {
-        conda_yml_file <-
-            paste0(find.package("rrrSnvs"),
-                   "/conda.yml")
-        message("Creating required conda environment rrrSNVs_xkcd_1337")
-        system(paste0("conda env create -n rrrSNVs_xkcd_1337 --file ",
-                      conda_yml_file))
-    }
-    return()
-}
-
 #' Call SNPs for a single bam file
 #'
 #' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
@@ -431,7 +417,8 @@ merge_bcfs <- function(bcf_in_dir,
 #' @return A hclust object
 calc_tree <- function(matrix_file,
                       counts_file,
-                      min_sites = 500) {
+                      min_sites = 500,
+                      min_groups = 3) {
     # filter out any clusters with too few SNP sites
     high_counts <-
         read.table(counts_file,
@@ -443,7 +430,6 @@ calc_tree <- function(matrix_file,
         purrr::keep(~.x > min_sites) %>%
         names()
 
-    min_groups <- 3
     if (length(high_counts) < min_groups) {
         message("There are fewer than ", min_groups, " groups with more than ",
                 min_sites, " variants covered. This is too few to make a tree.")

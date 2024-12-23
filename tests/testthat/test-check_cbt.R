@@ -3,7 +3,7 @@ test_that("check_cellid_bam_table stops if missing columns", {
         tibble::tibble(cell_barcode = c("ATGG-1", "ATGC-1"),
                        bam_file = c("file1.bam", "file2.bam"))
     expect_error(check_cellid_bam_table(test_cbt),
-                 "Columns should include cell_id, cell_group and bam_file")
+                 "Columns should include cell_barcode, cell_group and bam_file")
 })
 
 test_that("Table has correct column names", {

@@ -14,15 +14,15 @@ parser.add_argument('--bcf',
                     type = str,
                     default=  '/gpfs0/scratch/mvc002/testMouse/merged_B6_Balb_10.bcf',
                     help = 'BCF file with multiple samples as columns')
-parser.add_argument('--out_base',
+parser.add_argument('--figure_file',
                     '-o',
                     type = str,
-                    default = 'out_dist',
-                    help = 'output tsv file name')
-parser.add_argument('--min_snvs_for_sample',
+                    default = 'dendrogram.pdf',
+                    help = 'output file name of plot. Id suggest either png or pdf')
+parser.add_argument('--min_snvs_for_cluster',
                     type = int,
                     default = 500,
-                    help = 'minimum number of SNVs for a sample to be included')
+                    help = 'minimum number of SNVs for a cluster to be included')
 parser.add_argument('--max_prop_missing',
                     type = float,
                     default = 0.9,
@@ -52,13 +52,8 @@ args = parser.parse_args()
 def main():
     differences, samples = get_diff_matrix_from_bcf(
         bcf_file = args.bcf,
-        min_snvs_for_sample = args.min_snvs_for_sample,
+        min_snvs_for_cluster = args.min_snvs_for_cluster,
         max_prop_missing = args.max_prop_missing)
-    # test
-    # differences, samples = get_diff_matrix_from_bcf(
-    #     #'/gpfs0/scratch/mvc002/testMouse/six_merged.bcf',
-    #     500,
-    #     0.9)
 
     prop_diff_matrix = calc_proportion_dist_matrix(differences)
 
@@ -76,7 +71,7 @@ def main():
                                                   bootstrap_clusters)
 
     plot = plot_dendro_with_bootstrap_values(hclust_out, bootstrap_values, samples)
-    plot.savefig(args.out_base + '_dendrogram.pdf')
+    plot.savefig(args.figure_file)
 
     collapsed_clusters = collapse_clusters(original_clusters,
                                            bootstrap_values,
@@ -94,7 +89,7 @@ def main():
 
 ####### Can I clear out genotypes with all missing data? #################
 def get_diff_matrix_from_bcf(bcf_file,
-                             min_snvs_for_sample,
+                             min_snvs_for_cluster,
                              max_prop_missing):
     dist_key_dict = {'00':            0,
                      '01':            1,
@@ -126,7 +121,7 @@ def get_diff_matrix_from_bcf(bcf_file,
                          - genotype_matrix[:, np.newaxis, :])
     differences, samples = filter_diff_matrix(differences,
                                               samples,
-                                              min_snvs_for_sample)
+                                              min_snvs_for_cluster)
     return differences, samples
 
 def pad_len_1_genotype(gt):
@@ -135,9 +130,9 @@ def pad_len_1_genotype(gt):
     else:
         return gt
 
-def filter_diff_matrix(differences, samples, min_snvs_for_sample):
+def filter_diff_matrix(differences, samples, min_snvs_for_cluster):
     n_snps_per_sample = np.sum(~np.isnan(differences), axis=0).diagonal()
-    samples_to_keep = np.where(n_snps_per_sample >= min_snvs_for_sample)[0]
+    samples_to_keep = np.where(n_snps_per_sample >= min_snvs_for_cluster)[0]
     samples = np.array(samples)[samples_to_keep]
     differences = differences[:, samples_to_keep, :]
     differences = differences[:, :, samples_to_keep]
@@ -221,7 +216,6 @@ def plot_dendro_with_bootstrap_values(hclust, bootstrap_values, samples):
         x = ((icoord[1] + icoord[2]) * 0.5)
         y = dcoord[1]
         node_id = node_indices[i]
-        #if node_id in cluster_support:
         support = bootstrap_values[node_id] * 100 # original data is proportion
         plt.text(x, y, f'{support:.2f}%', va='bottom', ha='center', fontsize=6)
     return(plt)

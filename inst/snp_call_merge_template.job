@@ -26,7 +26,7 @@ eval "$(conda shell.bash hook)"
 conda activate rrrSNVs_xkcd_1337
 
 bcftools merge \
-        --threads 30 \
+        --threads 4 \
         -O u \
         placeholder_bcf_dir/*.bcf \
     | bcftools view \
@@ -35,12 +35,5 @@ bcftools merge \
         --output placeholder_bcf_out
 
 bcftools index \
-    --threads 30 \
+    --threads 4 \
     placeholder_bcf_out
-
-python placeholder_py_file \
-    --processes 30 \
-    --trim_path \
-    --vcf placeholder_bcf_out \
-    --out_base placeholder_dist_out
-

@@ -5,7 +5,7 @@
 #'
 #' @return NULL
 #'
-#' @keyword internal
+#' @noRd
 confirm_conda_env <- function() {
     pkg_location <- find.package("rrrSnvs")
 
@@ -42,7 +42,7 @@ confirm_conda_env <- function() {
 #'
 #' @return A logical value indicating whether the Conda environment "rrrSNVs_xkcd_1337" exists.
 #'
-#' @keyword internal
+#' @noRd
 conda_env_exists <- function() {
     if (check_cmd("conda") != 0) {
         stop(
@@ -69,10 +69,10 @@ conda_env_exists <- function() {
 #'
 #' @return A logical value indicating whether the Conda version matches the package version of rrrSnvs.
 #'
-#' @keyword internal
+#' @noRd
 get_conda_version <- function() {
     if (conda_env_exists()) {
-        package_version <- packageVersion("rrrSnvs")
+        package_version <- utils::packageVersion("rrrSnvs")
         conda_version <-
             system(
                 "conda env config vars list -n rrrSNVs_xkcd_1337",

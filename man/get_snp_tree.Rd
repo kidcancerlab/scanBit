@@ -7,14 +7,19 @@
 get_snp_tree(
   cellid_bam_table,
   temp_dir = tempdir(),
-  output_dir = temp_dir,
+  output_dir,
+  output_base_name = "hier_tree",
   slurm_base = paste0(getwd(), "/slurmOut"),
   sbatch_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,
   ref_fasta,
   min_depth = 5,
-  min_sites_covered = 500,
+  min_snvs_per_cluster = 500,
+  max_prop_missing_at_site = 0.9,
+  n_bootstraps = 1000,
+  bootstrap_cutoff = 0.95,
+  verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE
 )
@@ -29,6 +34,8 @@ bam_file column should contain the path to the bam file for that cell.}
 
 \item{output_dir}{The directory to write output distance files to.}
 
+\item{output_base_name}{The prefix to use with the output files.}
+
 \item{slurm_base}{The directory to write slurm output files to.}
 
 \item{sbatch_base}{The prefix to use with the sbatch job file.}
@@ -36,14 +43,27 @@ bam_file column should contain the path to the bam file for that cell.}
 \item{account}{The hpc account to use.}
 
 \item{ploidy}{Either a file path to a ploidy file, or a string indicating
-the ploidy.}
+the ploidy. #### PUT EXAMPLES HERE ####}
 
 \item{ref_fasta}{The path to the reference fasta file.}
 
-\item{min_depth}{The minimum depth to use when calling SNPs.}
+\item{min_depth}{The minimum depth to use when calling SNPs. Can be a vector
+of numbers.}
 
-\item{min_sites_covered}{The minimum number of sites that must be covered by
+\item{min_snvs_per_cluster}{The minimum number of sites that must be covered by
 a cell_group to be included in the tree.}
+
+\item{max_prop_missing_at_site}{The maximum proportion of missing data
+allowed at a site.}
+
+\item{n_bootstraps}{The number of bootstraps to use when evaluating grouping
+of samples in the hierarchical clustering tree.}
+
+\item{bootstrap_cutoff}{The bootstrap cutoff to use when collapsing the tree.
+This is the proportion of bootstraps that must support a grouping for it to
+be considered a valid grouping.}
+
+\item{verbose}{Whether to print out verbose output or not.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 
@@ -57,8 +77,8 @@ Generate a tree using SNPs derived from single cell clusters
 }
 \details{
 for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
- our mixed species reference with species prefixes on chromosomes, mm10 is
- mm10
+  our mixed species reference with species prefixes on chromosomes, mm10 is
+  mm10
 }
 \examples{
 \dontrun{

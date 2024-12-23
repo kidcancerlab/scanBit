@@ -1,26 +1,36 @@
 #' Generate a tree using SNPs derived from single cell clusters
 #'
 #' @param cellid_bam_table A tibble with three columns: cell_barcode,
-#'  cell_group and bam_file. The cell_barcode column should contain the cell
-#'  barcode, the cell_group column should contain the cluster label and the
-#'  bam_file column should contain the path to the bam file for that cell.
+#'   cell_group and bam_file. The cell_barcode column should contain the cell
+#'   barcode, the cell_group column should contain the cluster label and the
+#'   bam_file column should contain the path to the bam file for that cell.
 #' @param temp_dir The directory to write temporary files to.
 #' @param output_dir The directory to write output distance files to.
+#' @param output_base_name The prefix to use with the output files.
 #' @param slurm_base The directory to write slurm output files to.
 #' @param sbatch_base The prefix to use with the sbatch job file.
 #' @param account The hpc account to use.
 #' @param ploidy Either a file path to a ploidy file, or a string indicating
-#'  the ploidy.
+#'   the ploidy. #### PUT EXAMPLES HERE ####
 #' @param ref_fasta The path to the reference fasta file.
-#' @param min_depth The minimum depth to use when calling SNPs.
-#' @param min_sites_covered The minimum number of sites that must be covered by
-#'  a cell_group to be included in the tree.
+#' @param min_depth The minimum depth to use when calling SNPs. Can be a vector
+#'   of numbers.
+#' @param min_snvs_per_cluster The minimum number of sites that must be covered by
+#'   a cell_group to be included in the tree.
+#' @param max_prop_missing_at_site The maximum proportion of missing data
+#'   allowed at a site.
+#' @param n_bootstraps The number of bootstraps to use when evaluating grouping
+#'   of samples in the hierarchical clustering tree.
+#' @param bootstrap_cutoff The bootstrap cutoff to use when collapsing the tree.
+#'   This is the proportion of bootstraps that must support a grouping for it to
+#'   be considered a valid grouping.
+#' @param verbose Whether to print out verbose output or not.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #' @param cleanup Whether to clean up the temporary files after execution.
 #'
 #' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
-#'  our mixed species reference with species prefixes on chromosomes, mm10 is
-#'  mm10
+#'   our mixed species reference with species prefixes on chromosomes, mm10 is
+#'   mm10
 #'
 #' @return A hclust tree
 #' @export
@@ -31,14 +41,19 @@
 #' }
 get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
-                         output_dir = temp_dir,
+                         output_dir,
+                         output_base_name = "hier_tree",
                          slurm_base = paste0(getwd(), "/slurmOut"),
                          sbatch_base = "sbatch_",
                          account = "gdrobertslab",
                          ploidy,
                          ref_fasta,
                          min_depth = 5,
-                         min_sites_covered = 500,
+                         min_snvs_per_cluster = 500,
+                         max_prop_missing_at_site = 0.9,
+                         n_bootstraps = 1000,
+                         bootstrap_cutoff = 0.95,
+                         verbose = TRUE,
                          submit = TRUE,
                          cleanup = TRUE) {
     check_cellid_bam_table(cellid_bam_table)
@@ -62,6 +77,8 @@ get_snp_tree <- function(cellid_bam_table,
 
     results <-
         parallel::mclapply(seq_len(length(bam_files)),
+                           mc.cores = length(bam_files),
+                           mc.preschedule = FALSE,
                            function(i) {
             bam_name <- bam_files[i]
 
@@ -87,8 +104,7 @@ get_snp_tree <- function(cellid_bam_table,
                       ref_fasta = ref_fasta,
                       submit = submit,
                       cleanup = cleanup)
-            },
-                        mc.cores = length(bam_files))
+            })
 
     # The output from the previous step is a folder for each bam file located
     # in temp_dir/split_bcfs_{i}_c{min_depth}/. Next merge all the bcf files and
@@ -97,41 +113,70 @@ get_snp_tree <- function(cellid_bam_table,
 
     parallel::mclapply(min_depth,
                        mc.cores = 100,
+                       mc.preschedule = FALSE,
                        function(this_min_depth) {
-        merge_bcfs(bcf_in_dir = paste0(temp_dir,
-                                      "/split_bcfs_[0-9]*_c",
-                                      this_min_depth,
-                                      "/"),
-                   out_bcf = paste0(temp_dir,
-                                    "/merged_c",
-                                    this_min_depth,
-                                    ".bcf"),
-                   out_dist = paste0(output_dir,
-                                     "/distances_c",
-                                     this_min_depth),
-                   submit = submit,
-                   slurm_out = paste0(slurm_base, "_merge-%j.out"),
-                   sbatch_base = sbatch_base,
-                   account = account,
-                   cleanup = cleanup)
-        })
+        merge_bcfs(
+            bcf_in_dir = paste0(temp_dir,
+                                "/split_bcfs_[0-9]*_c",
+                                this_min_depth,
+                                "/"),
+            out_bcf = paste0(output_dir,
+                            "/merged",
+                            output_base_name,
+                            "_c",
+                            this_min_depth,
+                            ".bcf"),
+            submit = submit,
+            slurm_out = paste0(slurm_base, "_merge-%j.out"),
+            sbatch_base = sbatch_base,
+            account = account,
+            cleanup = cleanup
+        )
+    })
 
-    # Read in the distance matrix and make a tree for each min_depth
-    dist_trees <- list()
-    for (this_min_depth in min_depth) {
-        dist_trees[[paste0("min_depth_", this_min_depth)]] <-
-            calc_tree(matrix_file = paste0(output_dir,
-                                           "/distances_c",
-                                           this_min_depth,
-                                           ".tsv"),
-                      counts_file = paste0(output_dir,
-                                           "/distances_c",
-                                           this_min_depth,
-                                           "_tot_count.tsv"),
-                      min_sites = min_sites_covered)
-    }
+    # Read in the merged bcf and make a tree for each min_depth
+    # Number of cores doesn't matter here, we're just submitting slurm jobs
+    parallel::mclapply(min_depth,
+                       mc.cores = 100,
+                       mc.preschedule = FALSE,
+                       function(this_min_depth) {
+        group_clusters_by_dist(
+            merged_bcf_file =
+                paste0(
+                    output_dir,
+                    "/merged_c",
+                    this_min_depth,
+                    ".bcf"
+                ),
+            output_file =
+                paste0(
+                    output_dir,
+                    output_base_name,
+                    "_",
+                    this_min_depth,
+                    "_dist.txt"
+                ),
+            min_snvs_per_cluster = min_snvs_per_cluster,
+            max_prop_missing_at_site = max_prop_missing_at_site,
+            n_bootstraps = n_bootstraps,
+            bootstrap_cutoff = bootstrap_cutoff,
+            tree_figure_file =
+                paste0(
+                    output_dir,
+                    output_base_name,
+                    "_",
+                    this_min_depth,
+                    "_tree.png"
+                ),
+            verbose = verbose,
+            sbatch_base = paste0(sbatch_base, "_dist"),
+            account = account,
+            slurm_out = paste0(slurm_base, "_dist-%j.txt"),
+            submit = submit
+        )
+    })
 
-    return(dist_trees)
+    return(0)
 }
 
 #' Use the output from get_snp_tree to label cells
@@ -151,6 +196,7 @@ get_snp_tree <- function(cellid_bam_table,
 #' @return A Seurat object with a new columns in the metadata slot called
 #'  tree_group and, if control_group is not NULL, snp_tumor_call.
 #'
+#' @importFrom rlang :=
 #' @export
 #'
 #' @examples
@@ -286,7 +332,8 @@ call_snps <- function(cellid_bam_table,
     # how many cores we use
     parallel::mclapply(min_depth,
                        mc.cores = 100,
-                       function(this_min_depth){
+                       mc.preschedule = FALSE,
+                       function(this_min_depth) {
 
         replace_tibble_snp <-
             dplyr::tribble(
@@ -355,7 +402,6 @@ pick_ploidy <- function(ploidy) {
 #'
 #' @param bcf_in_dir The directory containing the bcfs to merge
 #' @param out_bcf The path to the output bcf file
-#' @param out_dist The path to the output distance matrix
 #' @param submit Whether to submit the job to slurm
 #' @param account The cluster account to use in the slurm script
 #' @param slurm_out The name of the slurm output file
@@ -365,34 +411,28 @@ pick_ploidy <- function(ploidy) {
 #' @return 0 if successful
 merge_bcfs <- function(bcf_in_dir,
                        out_bcf,
-                       out_dist,
                        submit = TRUE,
                        account = "gdrobertslab",
                        slurm_out = "slurmOut_merge-%j.txt",
                        sbatch_base = "sbatch_",
                        cleanup = TRUE) {
-    py_file <-
-        paste0(find.package("rrrSnvs"),
-               "/exec/vcfToMatrix.py")
 
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
-    replace_tibble_merge_dist <-
+    replace_tibble_merge <-
         dplyr::tribble(
             ~find,                      ~replace,
             "placeholder_account",      account,
             "placeholder_slurm_out",    slurm_out,
             "placeholder_bcf_out",      out_bcf,
-            "placeholder_py_file",      py_file,
-            "placeholder_bcf_dir",      bcf_in_dir,
-            "placeholder_dist_out",     out_dist
+            "placeholder_bcf_dir",      bcf_in_dir
         )
 
     # Call mpileup on each split_bams folder using a template and substituting
     # out the placeholder fields and index the individual bcf files
     result <-
-        use_sbatch_template(replace_tibble_merge_dist,
-                            "snp_call_merge_dist_template.job",
+        use_sbatch_template(replace_tibble_merge,
+                            "snp_call_merge_template.job",
                             warning_label = "Calling SNPs",
                             submit = submit,
                             file_dir = ".",
@@ -405,72 +445,91 @@ merge_bcfs <- function(bcf_in_dir,
     return(0)
 }
 
-#' Calculate a tree from a distance matrix output from merge_bcfs()
+#' Use Phylogenetic Tree from Merged BCF File to Find Similar Clusters
 #'
-#' @param matrix_file The path to the distance matrix output from merge_bcfs().
-#' @param counts_file The path to the counts file output from merge_bcfs().
-#' @param min_sites The minimum number of sites that must be covered by a
-#'  cell_group to be included in the tree.
+#' This function calculates how samples (from pseudobulked clusters) from a
+#' merged BCF file cluster hierarchically by collapsing a bootstrapped
+#' hierarchical clustered tree. This provides mathematical testing of
+#' genotypic divergence between the samples (clusters).
 #'
-#' @export
+#' @param merged_bcf_file Character. Path to the merged BCF file.
+#' @param output_file Character. Path to the output file for assigned groupings
+#'   per sample (cluster). Default is merged_bcf_file + "_dist.txt".
+#' @param min_snvs_per_cluster Numeric. Minimum number of SNVs per cluster.
+#'   Default is 500.
+#' @param max_prop_missing_at_site Numeric. Maximum proportion of missing data
+#'   allowed at a variant site. Default is 0.9.
+#' @param n_bootstraps Numeric. Number of bootstrap iterations. Default is 1000.
+#' @param bootstrap_cutoff Numeric. Bootstrap cutoff threshold to use for
+#'   collapsing groups of samples (clusters). Default is 0.95.
+#' @param tree_figure_file Character. Path to the output tree figure.
+#' @param verbose Logical. If TRUE, enables verbose output. Default is TRUE.
+#' @param sbatch_base Character. Base name for SLURM batch scripts. Can put
+#'   these in /tmp/ if you want. Default is "./sbatch_dist".
+#' @param account Character. SLURM account name. Default is "gdrobertslab".
+#' @param slurm_out Character. Path to the SLURM output file. Default is
+#'   "slurmOut_merge-%j.txt".
+#' @param submit Logical. If TRUE, submits the SLURM job. Default is TRUE. Used
+#'   mostly for testing.
 #'
-#' @return A hclust object
-calc_tree <- function(matrix_file,
-                      counts_file,
-                      min_sites = 500,
-                      min_groups = 3) {
-    # filter out any clusters with too few SNP sites
-    high_counts <-
-        read.table(counts_file,
-                   header = TRUE,
-                   row.names = 1,
-                   sep = "\t") %>%
-        as.matrix() %>%
-        diag() %>%
-        purrr::keep(~.x > min_sites) %>%
-        names()
+#' @return The result of the SLURM job submission.
+#'
+#' @examples
+#' \dontrun{
+#' group_clusters_by_dist(
+#'   merged_bcf_file = "path/to/merged.bcf",
+#'   tree_figure_file = "path/to/tree_figure.png"
+#' )
+#' }
+#'
+#' @noRd
+group_clusters_by_dist <- function(
+    merged_bcf_file,
+    output_file = paste0(merged_bcf_file, "_dist.txt"),
+    min_snvs_per_cluster = 500,
+    max_prop_missing_at_site = 0.9,
+    n_bootstraps = 1000,
+    bootstrap_cutoff = 0.95,
+    tree_figure_file,
+    verbose = TRUE,
+    sbatch_base = "sbatch_dist",
+    account = "gdrobertslab",
+    slurm_out = "slurmOut_merge-%j.txt",
+    submit = TRUE) {
+    py_file <-
+        paste0(find.package("rrrSnvs"),
+               "/exec/vcfToMatrix.py")
 
-    if (length(high_counts) < min_groups) {
-        message("There are fewer than ", min_groups, " groups with more than ",
-                min_sites, " variants covered. This is too few to make a tree.")
-        message("You may need to either lower min_sites or cluster your sample",
-                "differently to get more cells per cluster. Number of variants",
-                " per cluster:")
-        print(read.table(counts_file,
-                   header = TRUE,
-                   row.names = 1,
-                   sep = "\t") %>%
-            as.matrix() %>%
-            diag())
-        return(NULL)
-    }
+    verbose_setting <-
+        dplyr::if_else(verbose, "--verbose", "")
 
-    # read in the distance matrix and make a tree
-    dist_tree <-
-        read.table(matrix_file,
-                   header = TRUE,
-                   row.names = 1,
-                   sep = "\t") %>%
-        tibble::rownames_to_column("sample_1") %>%
-        tidyr::pivot_longer(names_to = "sample_2",
-                            values_to = "snp_dist",
-                            -sample_1) %>%
-        dplyr::filter(!is.na(snp_dist) &
-                      sample_1 %in% high_counts &
-                      sample_2 %in% high_counts) %>%
-        dplyr::group_by(sample_1) %>%
-        dplyr::mutate(group_count = dplyr::n()) %>%
-        dplyr::filter(group_count > 1) %>%
-        dplyr::select(-group_count) %>%
-        tidyr::pivot_wider(names_from = sample_2,
-                           values_from = snp_dist) %>%
-        tibble::column_to_rownames("sample_1") %>%
-        as.matrix() %>%
-        stats::dist() %>%
-        stats::hclust()
+    replace_tibble_dist <-
+        dplyr::tribble(
+            ~find,                              ~replace,
+            "placeholder_account",              account,
+            "placeholder_slurm_out",            slurm_out,
+            "placeholder_py_script",            py_file,
+            "placeholder_bcf_input",            merged_bcf_file,
+            "placeholder_min_snvs",             as.character(min_snvs_per_cluster),
+            "placeholder_max_missing",          as.character(max_prop_missing_at_site),
+            "placeholder_n_bootstrap",          as.character(n_bootstraps),
+            "placeholder_bootstrap_threshold",  as.character(bootstrap_cutoff),
+            "placeholder_fig_file",             tree_figure_file,
+            "placeholder_verbose",              verbose_setting,
+            "placeholder_groups_output",        output_file
+        )
 
-    # Return a hclust tree
-    return(dist_tree)
+    # Call mpileup on each split_bams folder using a template and substituting
+    # out the placeholder fields and index the individual bcf files
+    result <-
+        use_sbatch_template(replace_tibble_dist,
+                            "vcf_to_matrix.sh",
+                            warning_label = "Calculating distance from BCF",
+                            submit = submit,
+                            file_dir = ".",
+                            temp_prefix = sbatch_base)
+
+    return(result)
 }
 
 #' Use the metadata in a Seurat object to determine which clusters are

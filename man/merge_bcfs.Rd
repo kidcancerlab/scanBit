@@ -7,7 +7,6 @@
 merge_bcfs(
   bcf_in_dir,
   out_bcf,
-  out_dist,
   submit = TRUE,
   account = "gdrobertslab",
   slurm_out = "slurmOut_merge-\%j.txt",
@@ -19,8 +18,6 @@ merge_bcfs(
 \item{bcf_in_dir}{The directory containing the bcfs to merge}
 
 \item{out_bcf}{The path to the output bcf file}
-
-\item{out_dist}{The path to the output distance matrix}
 
 \item{submit}{Whether to submit the job to slurm}
 

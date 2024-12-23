@@ -67,24 +67,10 @@ def main():
     original_clusters = get_cluster_members(hclust_out, len(samples))
 
     # Do bootstrapping
-    # import time
-    # start_time = time.time()
     bootstrap_clusters = get_bootstrap_cluster_members(
         differences,
         args.n_bootstrap,
         args.processes)
-    # end_time = time.time()
-    # Looks to be ~50G per thread
-    # 35 seconds - 10 bootstrap samples, 30 threads
-    # 341 seconds - 100 bootstrap samples, 30 threads
-    # 380 seconds - 100 bootstrap samples, 40 threads
-    # 45 seconds - 100 bootstrap samples, 40 threads - 0.9 max prop missing - only about 10G ram
-    # 377 seconds - 1000 bootstrap samples, 40 threads - 0.9 max prop missing - only about 10G ram
-    # 387 seconds - 1000 bootstrap samples, 40 threads - 0.9 max prop missing - only about 10G ram
-
-    # elapsed_time = end_time - start_time
-
-    # print(f"Elapsed time: {elapsed_time} seconds")
 
     bootstrap_values = calculate_bootstrap_values(original_clusters,
                                                   bootstrap_clusters)

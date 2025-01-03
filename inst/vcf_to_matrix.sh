@@ -24,11 +24,11 @@ conda activate rrrSNVs_xkcd_1337
 
 python \
     placeholder_py_script \
-    --processes 20 \
-    --bcf placeholder_bcf_input \
-    --min_snvs_for_cluster placeholder_min_snvs \
-    --max_prop_missing placeholder_max_missing \
-    --n_bootstrap placeholder_n_bootstrap \
-    --bootstrap_threshold placeholder_bootstrap_threshold \
-    --figure_file placeholder_fig_file placeholder_verbose \
+        --processes 20 \
+        --bcf placeholder_bcf_input \
+        --min_snvs_for_cluster placeholder_min_snvs \
+        --max_prop_missing placeholder_max_missing \
+        --n_bootstrap placeholder_n_bootstrap \
+        --bootstrap_threshold placeholder_bootstrap_threshold \
+        --figure_file placeholder_fig_file placeholder_verbose \
     > placeholder_groups_output

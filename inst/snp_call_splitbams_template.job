@@ -35,5 +35,5 @@ conda activate rrrSNVs_xkcd_1337
 
 python placeholder_py_file \
     --cells ${cell_file} \
-    --out_base ${bam_dir}/split \
+    --out_dir ${bam_dir}/ \
     --bam ${bam_file}

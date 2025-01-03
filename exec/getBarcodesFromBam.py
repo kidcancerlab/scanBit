@@ -14,11 +14,11 @@ parser.add_argument('--bam',
                     type=str,
                     default='/home/gdrobertslab/lab/Counts/S0149/possorted_genome_bam.bam',
                     help='bam file output from cellranger')
-parser.add_argument('--out_base',
+parser.add_argument('--out_dir',
                     '-o',
                     type = str,
                     default = 'test',
-                    help='output bam file name')
+                    help='output bam file directory')
 parser.add_argument('--verbose',
                     action='store_true',
                     help='print out extra information')
@@ -43,7 +43,7 @@ def open_bam_outs_from_labels(labels, bam_template):
     bam_outs = {}
     for label in labels:
         # check if the output bam file already exists
-        bam_file = args.out_base + '_' + label + '.bam'
+        bam_file = args.out_dir + '/' + label + '.bam'
         if os.path.exists(bam_file):
             print("Error: bam file already exists", file = sys.stderr)
             sys.exit(1)

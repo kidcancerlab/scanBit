@@ -71,6 +71,7 @@ def main():
                                                   bootstrap_clusters)
 
     plot = plot_dendro_with_bootstrap_values(hclust_out, bootstrap_values, samples)
+    plot.tight_layout()
     plot.savefig(args.figure_file)
 
     collapsed_clusters = collapse_clusters(original_clusters,
@@ -199,7 +200,7 @@ def calculate_bootstrap_values(true_clusters, bootstrap_clusters):
 def plot_dendro_with_bootstrap_values(hclust, bootstrap_values, samples):
     dend_plot = dendrogram(hclust,
                            labels=samples,
-                           leaf_rotation=45.,
+                           leaf_rotation=90.,
                            leaf_font_size=6.,
                            color_threshold=0)
     icoords = dend_plot['icoord']

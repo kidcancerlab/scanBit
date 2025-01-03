@@ -32,7 +32,7 @@
 #'   our mixed species reference with species prefixes on chromosomes, mm10 is
 #'   mm10
 #'
-#' @return A hclust tree
+#' @return TRUE if the function succeeded. Output is written to output_dir.
 #' @export
 #'
 #' @examples
@@ -43,7 +43,7 @@ get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          output_dir,
                          output_base_name = "hier_tree",
-                         slurm_base = paste0(getwd(), "/slurmOut"),
+                         slurm_base = paste0(temp_dir, "/slurmOut"),
                          sbatch_base = "sbatch_",
                          account = "gdrobertslab",
                          ploidy,
@@ -87,24 +87,31 @@ get_snp_tree <- function(cellid_bam_table,
                 dplyr::filter(bam_file == bam_name) %>%
                 dplyr::select(cell_barcode, cell_group)
 
-            call_snps(cellid_bam_table = sub_cellid_bam_table,
-                      bam_to_use = bam_name,
-                      bam_out_dir = paste0(temp_dir,
-                                       "/split_bams_",
-                                       i,
-                                       "/"),
-                      bcf_dir = paste0(temp_dir,
-                                       "/split_bcfs_",
-                                       i),
-                      slurm_base = slurm_base,
-                      sbatch_base = sbatch_base,
-                      account = account,
-                      ploidy = ploidy,
-                      min_depth = min_depth,
-                      ref_fasta = ref_fasta,
-                      submit = submit,
-                      cleanup = cleanup)
-            })
+            call_snps(
+                cellid_bam_table = sub_cellid_bam_table,
+                bam_to_use = bam_name,
+                bam_out_dir = paste0(
+                    temp_dir,
+                    "/split_bams_",
+                    i,
+                    "/"
+                ),
+                bcf_dir = paste0(
+                    temp_dir,
+                    "/split_bcfs_",
+                    i
+                ),
+                slurm_base = slurm_base,
+                sbatch_base = sbatch_base,
+                account = account,
+                ploidy = ploidy,
+                min_depth = min_depth,
+                ref_fasta = ref_fasta,
+                temp_dir = temp_dir,
+                submit = submit,
+                cleanup = cleanup
+            )
+        })
 
     # The output from the previous step is a folder for each bam file located
     # in temp_dir/split_bcfs_{i}_c{min_depth}/. Next merge all the bcf files and
@@ -130,6 +137,7 @@ get_snp_tree <- function(cellid_bam_table,
             slurm_out = paste0(slurm_base, "_merge-%j.out"),
             sbatch_base = sbatch_base,
             account = account,
+            temp_dir = temp_dir,
             cleanup = cleanup
         )
     })
@@ -137,14 +145,16 @@ get_snp_tree <- function(cellid_bam_table,
     # Read in the merged bcf and make a tree for each min_depth
     # Number of cores doesn't matter here, we're just submitting slurm jobs
     parallel::mclapply(min_depth,
-                       mc.cores = 100,
+                       mc.cores = 101,
                        mc.preschedule = FALSE,
                        function(this_min_depth) {
         group_clusters_by_dist(
             merged_bcf_file =
                 paste0(
                     output_dir,
-                    "/merged_c",
+                    "/merged",
+                    output_base_name,
+                    "_c",
                     this_min_depth,
                     ".bcf"
                 ),
@@ -162,21 +172,22 @@ get_snp_tree <- function(cellid_bam_table,
             bootstrap_cutoff = bootstrap_cutoff,
             tree_figure_file =
                 paste0(
-                    output_dir,
+                    output_dir, "/",
                     output_base_name,
                     "_",
                     this_min_depth,
                     "_tree.png"
                 ),
             verbose = verbose,
-            sbatch_base = paste0(sbatch_base, "_dist"),
+            sbatch_base = sbatch_base,
             account = account,
             slurm_out = paste0(slurm_base, "_dist-%j.txt"),
+            temp_dir = temp_dir,
             submit = submit
         )
     })
 
-    return(0)
+    return(TRUE)
 }
 
 #' Use the output from get_snp_tree to label cells
@@ -259,6 +270,7 @@ label_tree_groups <- function(sobject,
 #' @param ploidy The ploidy of the organism. See details for more information
 #' @param ref_fasta The reference fasta file to use
 #' @param min_depth The minimum depth to use when calling snps
+#' @param temp_dir The directory to write temporary files to
 #' @param submit Whether or not to submit the slurm scripts
 #' @param cleanup Whether or not to clean up the bam files afterwards
 #'
@@ -266,6 +278,7 @@ label_tree_groups <- function(sobject,
 #'
 #' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
 #'
+#' @noRd
 call_snps <- function(cellid_bam_table,
                       bam_to_use,
                       bam_out_dir,
@@ -276,6 +289,7 @@ call_snps <- function(cellid_bam_table,
                       ploidy,
                       ref_fasta,
                       min_depth = 5,
+                      temp_dir,
                       submit = TRUE,
                       cleanup = TRUE) {
     # Check that the bam and bcf directories exist, and if not, create them
@@ -301,7 +315,11 @@ call_snps <- function(cellid_bam_table,
         dplyr::tribble(
             ~find,                      ~replace,
             "placeholder_account",      account,
-            "placeholder_slurm_out",    paste0(slurm_base, "_splitbams-%j.out"),
+            "placeholder_slurm_out",    paste0(
+                                            temp_dir, "/",
+                                            slurm_base,
+                                            "_splitbams-%j.out"
+                                        ),
             "placeholder_cell_file",    cell_file,
             "placeholder_bam_file",     bam_to_use,
             "placeholder_bam_dir",      paste0(bam_out_dir, "/"),
@@ -316,7 +334,7 @@ call_snps <- function(cellid_bam_table,
                             "snp_call_splitbams_template.job",
                             warning_label = "Bam splitting",
                             submit = submit,
-                            file_dir = ".",
+                            file_dir = temp_dir,
                             temp_prefix = paste0(sbatch_base, "split_"))
 
     ploidy <- pick_ploidy(ploidy)
@@ -339,12 +357,15 @@ call_snps <- function(cellid_bam_table,
             dplyr::tribble(
                 ~find,                    ~replace,
                 "placeholder_account",    account,
-                "placeholder_slurm_out",  paste0(slurm_base, "_mpileup-%j.out"),
+                "placeholder_slurm_out",  paste0(
+                                                temp_dir, "/",
+                                                slurm_base,
+                                                "_mpileup-%j.out"
+                                          ),
                 "placeholder_array_max",  as.character(array_max),
                 "placeholder_bam_dir",    bam_out_dir,
                 "placeholder_ref_fasta",  ref_fasta,
                 "placeholder_ploidy",     ploidy,
-                "placeholder_bam_file",   bam_to_use,
                 "placeholder_bcf_dir",    paste0(bcf_dir, "_c", this_min_depth),
                 "placeholder_min_depth",  as.character(this_min_depth)
             )
@@ -371,11 +392,15 @@ call_snps <- function(cellid_bam_table,
 #'
 #' @param ploidy Either a file path to a ploidy file, or a string indicating
 #'  the ploidy.
+#'
 #' @return A string that can be passed to use_sbatch_template() to fill in
 #'  placeholder_ploidy
+#'
 #' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
 #' species reference with species prefixes on chromosomes, mm10_hg38 is our
 #' mixed reference from 10x, mm10 is mm10
+#'
+#' @noRd
 pick_ploidy <- function(ploidy) {
     if (file.exists(ploidy)) {
         return(paste("--ploidy-file", ploidy))
@@ -404,17 +429,21 @@ pick_ploidy <- function(ploidy) {
 #' @param out_bcf The path to the output bcf file
 #' @param submit Whether to submit the job to slurm
 #' @param account The cluster account to use in the slurm script
-#' @param slurm_out The name of the slurm output file
+#' @param slurm_base The name of the slurm output file
 #' @param sbatch_base The prefix to use with the sbatch job file
+#' @param temp_dir The directory to write temporary files to
 #' @param cleanup Whether to delete the bcfs after merging
 #'
 #' @return 0 if successful
+#'
+#' @noRd
 merge_bcfs <- function(bcf_in_dir,
                        out_bcf,
                        submit = TRUE,
                        account = "gdrobertslab",
-                       slurm_out = "slurmOut_merge-%j.txt",
+                       slurm_base = "slurmOut_merge-%j.txt",
                        sbatch_base = "sbatch_",
+                       temp_dir,
                        cleanup = TRUE) {
 
     # use template to merge bcfs and write out a distance matrix, substituting
@@ -423,7 +452,11 @@ merge_bcfs <- function(bcf_in_dir,
         dplyr::tribble(
             ~find,                      ~replace,
             "placeholder_account",      account,
-            "placeholder_slurm_out",    slurm_out,
+            "placeholder_slurm_out",    paste0(
+                                            temp_dir, "/",
+                                            slurm_base,
+                                            "_merge-%j.out"
+                                        ),
             "placeholder_bcf_out",      out_bcf,
             "placeholder_bcf_dir",      bcf_in_dir
         )
@@ -435,7 +468,7 @@ merge_bcfs <- function(bcf_in_dir,
                             "snp_call_merge_template.job",
                             warning_label = "Calling SNPs",
                             submit = submit,
-                            file_dir = ".",
+                            file_dir = temp_dir,
                             temp_prefix = paste0(sbatch_base, "merge_"))
 
     # remove individual bcf files
@@ -467,8 +500,9 @@ merge_bcfs <- function(bcf_in_dir,
 #' @param sbatch_base Character. Base name for SLURM batch scripts. Can put
 #'   these in /tmp/ if you want. Default is "./sbatch_dist".
 #' @param account Character. SLURM account name. Default is "gdrobertslab".
-#' @param slurm_out Character. Path to the SLURM output file. Default is
+#' @param slurm_base Character. Path to the SLURM output file. Default is
 #'   "slurmOut_merge-%j.txt".
+#' @param temp_dir The directory to write temporary files to
 #' @param submit Logical. If TRUE, submits the SLURM job. Default is TRUE. Used
 #'   mostly for testing.
 #'
@@ -494,7 +528,8 @@ group_clusters_by_dist <- function(
     verbose = TRUE,
     sbatch_base = "sbatch_dist",
     account = "gdrobertslab",
-    slurm_out = "slurmOut_merge-%j.txt",
+    slurm_base = "slurmOut_dist-%j.txt",
+    temp_dir,
     submit = TRUE) {
     py_file <-
         paste0(find.package("rrrSnvs"),
@@ -507,7 +542,11 @@ group_clusters_by_dist <- function(
         dplyr::tribble(
             ~find,                              ~replace,
             "placeholder_account",              account,
-            "placeholder_slurm_out",            slurm_out,
+            "placeholder_slurm_out",            paste0(
+                                                    temp_dir, "/",
+                                                    slurm_base,
+                                                    "_dist-%j.out"
+                                                ),
             "placeholder_py_script",            py_file,
             "placeholder_bcf_input",            merged_bcf_file,
             "placeholder_min_snvs",             as.character(min_snvs_per_cluster),
@@ -526,8 +565,8 @@ group_clusters_by_dist <- function(
                             "vcf_to_matrix.sh",
                             warning_label = "Calculating distance from BCF",
                             submit = submit,
-                            file_dir = ".",
-                            temp_prefix = sbatch_base)
+                            file_dir = temp_dir,
+                            temp_prefix = paste0(sbatch_base, "_dist"))
 
     return(result)
 }

@@ -48,9 +48,9 @@ use_sbatch_template <- function(replace_tibble,
     # Replace placeholders with real data
     for (i in seq_len(nrow(replace_tibble))) {
         sbatch_template <-
-        stringr::str_replace_all(sbatch_template,
-                                 pattern = replace_tibble$find[i],
-                                 replacement = replace_tibble$replace[i])
+            stringr::str_replace_all(sbatch_template,
+                                     pattern = replace_tibble$find[i],
+                                     replacement = replace_tibble$replace[i])
     }
 
     temp_file <-

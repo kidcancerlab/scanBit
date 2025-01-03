@@ -7,26 +7,31 @@
 #'
 #' @noRd
 confirm_conda_env <- function() {
-    pkg_location <- find.package("rrrSnvs")
+    # Eventually, maybe drop this in alongside the package
+    #pkg_location <- find.package("rrrSnvs")
 
     env_found <- conda_env_exists()
 
-    right_env_version <- get_conda_version()
+    conda_version_right <- right_conda_version()
 
-
-
-    if (env_found && right_env_version) {
-
+    if (env_found && conda_version_right) {
+        return(TRUE)
+    } else if (!env_found) {
+        message("Creating required conda environment rrrSNVs_xkcd_1337")
         conda_yml_file <-
             paste0(find.package("rrrSnvs"),
                    "/conda.yml")
 
-        message("Creating required conda environment rrrSNVs_xkcd_1337")
         system(paste0("conda env create -n rrrSNVs_xkcd_1337 --file ",
                       conda_yml_file))
-    } else if (env_found && !right_env_version) {
 
-
+        return(TRUE)
+    } else if (!conda_version_right) {
+        system(paste0(
+            "conda remove -n rrrSNVs_xkcd_1337 --all -y;\n",
+            "conda env create -n rrrSNVs_xkcd_1337 --file ",
+            conda_yml_file
+        ))
     }
     return()
 }
@@ -40,7 +45,8 @@ confirm_conda_env <- function() {
 #' If the `conda` command is found, it checks for the existence of the specified
 #' Conda environment.
 #'
-#' @return A logical value indicating whether the Conda environment "rrrSNVs_xkcd_1337" exists.
+#' @return A logical value indicating whether the Conda environment
+#'   "rrrSNVs_xkcd_1337" exists.
 #'
 #' @noRd
 conda_env_exists <- function() {
@@ -67,10 +73,11 @@ conda_env_exists <- function() {
 #' version with the package version of rrrSnvs and returns a logical value
 #' indicating if they're equal.
 #'
-#' @return A logical value indicating whether the Conda version matches the package version of rrrSnvs.
+#' @return A logical value indicating whether the Conda version matches the
+#'   package version of rrrSnvs.
 #'
 #' @noRd
-get_conda_version <- function() {
+right_conda_version <- function() {
     if (conda_env_exists()) {
         package_version <- utils::packageVersion("rrrSnvs")
         conda_version <-
@@ -81,7 +88,7 @@ get_conda_version <- function() {
             stringr::str_remove("rrrSnvs_version = ")
         return(conda_version == package_version)
     } else {
-        stop("Conda environment rrrSNVs_xkcd_1337 not found")
+        return(FALSE)
     }
-    stop("Shouldn't be possible to get this error message in get_conda_version")
+    stop("Shouldn't be possible to get this error message: right_conda_version")
 }

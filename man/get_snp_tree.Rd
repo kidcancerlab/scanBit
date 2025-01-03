@@ -9,7 +9,7 @@ get_snp_tree(
   temp_dir = tempdir(),
   output_dir,
   output_base_name = "hier_tree",
-  slurm_base = paste0(getwd(), "/slurmOut"),
+  slurm_base = paste0(temp_dir, "/slurmOut"),
   sbatch_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,
@@ -70,7 +70,7 @@ be considered a valid grouping.}
 \item{cleanup}{Whether to clean up the temporary files after execution.}
 }
 \value{
-A hclust tree
+TRUE if the function succeeded. Output is written to output_dir.
 }
 \description{
 Generate a tree using SNPs derived from single cell clusters

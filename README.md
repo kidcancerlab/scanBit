@@ -11,6 +11,7 @@
   * Make arguments inherit documentation from other functions instead of re-typing them
   * Vignette
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
+  * install bcftools and samtools in conda environment
 
 ---
 

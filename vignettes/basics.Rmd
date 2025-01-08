@@ -14,6 +14,12 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r libraries}
+library(Seurat)
+library(rrrSnvs)
+library(tidyverse)
+```
+
 ## Using SNPs to define tumor clusters
 ```{r eval=FALSE}
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
@@ -63,22 +69,16 @@ c_b_t <-
 snp_tree <-
     get_snp_tree(cellid_bam_table = c_b_t,
                  ploidy = "GRCh37",
+                 output_dir = "output",
+                 output_base_name = "test_two_sobj",
                  ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
-                 min_depth = 5,
-                 temp_dir = "/gpfs0/scratch/mvc002/test_two_sobj",
+                 min_depth = c(5, 10, 20),
                  sbatch_base = "two_sobj",
-                 slurm_base = "/gpfs0/scratch/mvc002/test_two_sobj/two_sobj",
-                 min_sites_covered = 1000,
+                 min_snvs_per_cluster = 1000,
+                 max_prop_missing_at_site = 0.9,
                  cleanup = FALSE)
 
-png("output/figures/testTwoSobjOutput1.png",
-    width = 2500,
-    height = 2500,
-    res = 300)
-plot(snp_tree)
-dev.off()
-
-cut_n_groups <- 2
+# Pngs of trees and text output is in output/ directory
 
 new_two_sobj <-
     label_tree_groups(sobject = two_sobj,

@@ -9,7 +9,7 @@ get_snp_tree(
   temp_dir = tempdir(),
   output_dir,
   output_base_name = "hier_tree",
-  slurm_base = paste0(temp_dir, "/slurmOut"),
+  slurm_base = "/slurmOut",
   sbatch_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,

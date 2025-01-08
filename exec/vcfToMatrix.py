@@ -12,7 +12,7 @@ from itertools import repeat
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--bcf',
                     type = str,
-                    default=  '/gpfs0/scratch/mvc002/testMouse/merged_B6_Balb_10.bcf',
+                    default=  'output/mergedtest_two_sobj_c20.bcf',
                     help = 'BCF file with multiple samples as columns')
 parser.add_argument('--figure_file',
                     '-o',
@@ -76,13 +76,13 @@ def main():
 
     collapsed_clusters = collapse_clusters(original_clusters,
                                            bootstrap_values,
-                                           threshold=args.bootstrap_threshold)
+                                           threshold=args.bootstrap_threshold, samples = samples)
 
     clusters_with_names = [[str(samples[x]) for x in cluster] for cluster in collapsed_clusters]
 
     for i in range(len(clusters_with_names)):
         for sample in clusters_with_names[i]:
-            print(f"{sample}\t{i}")
+            print(f"{sample}\tgroup_{i}")
 
 
 ########
@@ -192,7 +192,8 @@ def calculate_bootstrap_values(true_clusters, bootstrap_clusters):
     counts = np.zeros(len(true_clusters))
     for one_bootstrap in bootstrap_clusters:
         for cluster in one_bootstrap:
-            if cluster in true_clusters:
+            # We don't want "clusters" of size 1 to have bootstrap values of 1
+            if cluster in true_clusters and len(cluster) > 1:
                 counts[true_clusters.index(cluster)] += 1
     counts /= len(bootstrap_clusters)
     return counts
@@ -223,26 +224,24 @@ def plot_dendro_with_bootstrap_values(hclust, bootstrap_values, samples):
 
 def collapse_clusters(true_clusters,
                       bootstrap_values,
-                      threshold = args.bootstrap_threshold):
-    parent_dict = {'none': 'not a cluster'}
+                      threshold = args.bootstrap_threshold, samples = None):
+    parent_dict = {'none': 'fork'}
     # loop over each cluster, starting with the largest
     for cluster_num in range(len(bootstrap_values) - 1, -1, -1):
-        parent_is_cluster = is_parent_a_cluster(parent_dict,
-                                                cluster_num,
-                                                true_clusters)
+        parent_is_fork = is_parent_a_fork(parent_dict,
+                                          cluster_num,
+                                          true_clusters)
         my_bootstrap = bootstrap_values[cluster_num]
-        if (my_bootstrap > threshold) and not parent_is_cluster:
-            parent_dict[cluster_num] = 'not a cluster'
-        elif (my_bootstrap > threshold) and parent_is_cluster:
-            parent_dict[cluster_num] = parent_dict[find_parent_node(cluster_num, true_clusters)]
-        elif (my_bootstrap < threshold) and not parent_is_cluster:
-            parent_dict[cluster_num] = cluster_num
-        elif (my_bootstrap < threshold) and parent_is_cluster:
-            parent_dict[cluster_num] = parent_dict[find_parent_node(cluster_num, true_clusters)]
+        if parent_is_fork:
+            if (my_bootstrap >= threshold):
+                parent_dict[cluster_num] = 'fork'
+            elif (my_bootstrap < threshold):
+                parent_dict[cluster_num] = cluster_num
         else:
-            raise ValueError(f"Cluster {cluster_num} did not meet any criteria. This shouldn't be possible, but here we are")
+            parent_dict[cluster_num] = parent_dict[find_parent_node(cluster_num, true_clusters)]
+    # Keep only keys from "cluster" nodes in parent_dict
     clusters = set(parent_dict.values())
-    clusters.remove('not a cluster')
+    clusters.remove('fork')
     return [true_clusters[x] for x in clusters]
 
 def find_parent_node(node_id, true_clusters):
@@ -251,10 +250,10 @@ def find_parent_node(node_id, true_clusters):
             return i
     return 'none'
 
-def is_parent_a_cluster(parent_dict, node_id, true_clusters):
+def is_parent_a_fork(parent_dict, node_id, true_clusters):
     parent_node = find_parent_node(node_id, true_clusters)
     if parent_node in parent_dict:
-        if parent_dict[parent_node] != 'not a cluster' and parent_node != 'none':
+        if parent_dict[parent_node] == 'fork':
             return True
         else:
             return False

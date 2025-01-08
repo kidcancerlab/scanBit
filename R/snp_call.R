@@ -43,7 +43,7 @@ get_snp_tree <- function(cellid_bam_table,
                          temp_dir = tempdir(),
                          output_dir,
                          output_base_name = "hier_tree",
-                         slurm_base = paste0(temp_dir, "/slurmOut"),
+                         slurm_base = "/slurmOut",
                          sbatch_base = "sbatch_",
                          account = "gdrobertslab",
                          ploidy,
@@ -160,7 +160,7 @@ get_snp_tree <- function(cellid_bam_table,
                 ),
             output_file =
                 paste0(
-                    output_dir,
+                    output_dir, "/",
                     output_base_name,
                     "_",
                     this_min_depth,
@@ -383,7 +383,11 @@ call_snps <- function(cellid_bam_table,
     # Delete contents of the split_bams folder
     # I should change how I do this, this may be a bit dangerous
     if (cleanup) {
-        unlink(bam_out_dir, recursive = TRUE)
+        system(paste0(
+            "rm ",
+            bam_out_dir,
+            "/split_bams_*/*.bam$"
+        ))
     }
     return(0)
 }

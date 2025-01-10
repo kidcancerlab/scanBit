@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# conda remove -n rrrSNVs_xkcd_1337 --all
+
 conda create -y -n rrrSNVs_xkcd_1337 python=3.12
 conda activate rrrSNVs_xkcd_1337
 

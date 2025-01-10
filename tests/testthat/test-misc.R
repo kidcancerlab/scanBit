@@ -13,3 +13,6 @@ test_that("check_cmd returns error if command is not available", {
 
     expect_error(check_cmd(cmd))
 })
+
+#####!!!!!!!!!!!!!!!! Test that package_version matches version in conda.yml
+

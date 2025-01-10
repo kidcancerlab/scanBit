@@ -190,74 +190,6 @@ get_snp_tree <- function(cellid_bam_table,
     return(TRUE)
 }
 
-#' Use the output from get_snp_tree to label cells
-#'
-#' @param sobject A Seurat object
-#' @param dist_tree A hclust tree output from get_snp_tree()
-#' @param group_col_name The name of the column in the Seurat object that was
-#'  used when assigning cells to groups for get_snp_tree()
-#' @param normal_groups The name of the control group(s). If this is not NULL,
-#'  then the group containing the control will be labeled "normal" and the
-#'  other group(s) will be labeled "tumor".
-#' @param cut_n_groups The number of groups to cut the tree into.
-#' @param cut_dist The distance to cut the tree at. This can be derived from the
-#'  y-axis of plotting the output from get_snp_tree().
-#' @param tumor_call_column The name of the column to use for the tumor call
-#'
-#' @return A Seurat object with a new columns in the metadata slot called
-#'  tree_group and, if control_group is not NULL, snp_tumor_call.
-#'
-#' @importFrom rlang :=
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#'    placeholder here for now
-#' }
-label_tree_groups <- function(sobject,
-                              dist_tree,
-                              group_col_name = "used_clusters",
-                              normal_groups,
-                              cut_n_groups = NULL,
-                              cut_dist = NULL,
-                              tumor_call_column = "snp_tumor_call") {
-    if (tumor_call_column %in% colnames(sobject@meta.data)) {
-        stop("tumor_call_column already exists in sobject, ",
-             "either remove it or choose a different name")
-    }
-    tree_groups <-
-        stats::cutree(dist_tree,
-                      k = cut_n_groups,
-                      h = cut_dist) %>%
-        tibble::enframe(name = group_col_name,
-                        value = "tree_group") %>%
-        dplyr::mutate(tree_group = LETTERS[tree_group])
-
-    # if tree_group contains the control, then rename it to "normal" and label
-    # the other group(s) as "tumor"
-    if (!is.null(normal_groups)) {
-        tree_groups <-
-            tree_groups %>%
-            dplyr::group_by(tree_group) %>%
-            dplyr::mutate("{tumor_call_column}" :=
-                            ifelse(any(normal_groups %in% get(group_col_name)),
-                                       "normal",
-                                       "tumor")) %>%
-            dplyr::ungroup() %>%
-            dplyr::select(-tree_group)
-    }
-    sobj_out <-
-        sobject@meta.data %>%
-        tibble::rownames_to_column("cell_barcode") %>%
-        dplyr::left_join(tree_groups, by = group_col_name) %>%
-        dplyr::select(dplyr::all_of(c(colnames(tree_groups),
-                                      "cell_barcode"))) %>%
-        tibble::column_to_rownames("cell_barcode") %>%
-        Seurat::AddMetaData(object = sobject)
-
-    return(sobj_out)
-}
-
 #' Call SNPs for a single bam file
 #'
 #' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
@@ -504,9 +436,8 @@ merge_bcfs <- function(bcf_in_dir,
 #' @param sbatch_base Character. Base name for SLURM batch scripts. Can put
 #'   these in /tmp/ if you want. Default is "./sbatch_dist".
 #' @param account Character. SLURM account name. Default is "gdrobertslab".
-#' @param slurm_base Character. Path to the SLURM output file. Default is
-#'   "slurmOut_merge-%j.txt".
-#' @param temp_dir The directory to write temporary files to
+#' @param slurm_base Character. Path to the SLURM output file.
+#' @param temp_dir The directory to write temporary files to.
 #' @param submit Logical. If TRUE, submits the SLURM job. Default is TRUE. Used
 #'   mostly for testing.
 #'
@@ -514,13 +445,13 @@ merge_bcfs <- function(bcf_in_dir,
 #'
 #' @examples
 #' \dontrun{
-#' group_clusters_by_dist(
-#'   merged_bcf_file = "path/to/merged.bcf",
-#'   tree_figure_file = "path/to/tree_figure.png"
-#' )
+#'   group_clusters_by_dist(
+#'       merged_bcf_file = "path/to/merged.bcf",
+#'       tree_figure_file = "path/to/tree_figure.png"
+#'   )
 #' }
 #'
-#' @noRd
+#' @export
 group_clusters_by_dist <- function(
     merged_bcf_file,
     output_file = paste0(merged_bcf_file, "_dist.txt"),

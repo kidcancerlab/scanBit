@@ -46,15 +46,6 @@ two_sobj$cell_score <-
     cell_assign$scores %>%
     apply(MARGIN = 1, function(x) max(x, na.rm = TRUE))
 
-control_celltypes <- c("Monocytes", "Macrophages")
-
-# Figure out which clusters are more than 50% control celltypes
-normal_clusters <-
-    match_celltype_clusters(sobject = two_sobj,
-                            normal_celltypes = control_celltypes,
-                            cluster_col = "used_clusters",
-                            celltype_col = "cell_type")
-
 c_b_t <-
     two_sobj@meta.data %>%
     select(used_clusters) %>%
@@ -80,22 +71,56 @@ snp_tree <-
 
 # Pngs of trees and text output is in output/ directory
 
-new_two_sobj <-
-    label_tree_groups(sobject = two_sobj,
-                      dist_tree = snp_tree,
-                      group_col_name = "used_clusters",
-                      normal_groups = normal_clusters,
-                      cut_n_groups = cut_n_groups)
+# Add snv groups to the Seurat object
+two_sobj <-
+    add_snv_group_to_sobj(
+        two_sobj,
+        snv_group_file = "output/test_two_sobj_5_dist.txt",
+        new_column = "snv_group_5"
+    ) %>%
+    add_snv_group_to_sobj(
+        "output/test_two_sobj_10_dist.txt",
+        new_column = "snv_group_10"
+    ) %>%
+    add_snv_group_to_sobj(
+        "output/test_two_sobj_20_dist.txt",
+        new_column = "snv_group_20"
+    )
 
-png("testTwoSobjOutput2.png",
-    width = 7000,
-    height = 2500,
-    res = 300)
-DimPlot(new_two_sobj,
-        group.by = c("snp_tumor_call",
-                     "cell_type"),
-        label = TRUE,
-        repel = TRUE) +
+DimPlot(
+    two_sobj,
+    group.by = c("snv_group_5", "snv_group_10", "snv_group_20", "cell_type"),
+    label = TRUE,
+    repel = TRUE,
+    ncol = 2
+) +
     NoLegend()
-dev.off()
+
+control_celltypes <- c("Monocytes", "Macrophages", "NK cells", "NK_cell")
+
+# Figure out which clusters are more than 50% control celltypes
+normal_clusters <-
+    match_celltype_clusters(sobject = two_sobj,
+                            normal_celltypes = control_celltypes,
+                            cluster_col = "used_clusters",
+                            celltype_col = "cell_type")
+
+two_sobj <-
+    label_tumor_cells(
+        two_sobj,
+        group_col_name = "used_clusters",
+        snv_group_col = "snv_group_20",
+        normal_clusters = normal_clusters,
+        tumor_call_column = "snv_tumor_call_20"
+    )
+
+DimPlot(
+    two_sobj,
+    group.by = c("snv_group_20", "snv_tumor_call_20", "cell_type"),
+    label = TRUE,
+    repel = TRUE,
+    ncol = 2
+) +
+    NoLegend()
+
 ```

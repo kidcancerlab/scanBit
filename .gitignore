@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.png
+*.RData
+*.pdf
+slurm*
+.vscode
+inst/doc
+rrrSingleCellUtils.Rproj
+tempDir
+src/target
+output

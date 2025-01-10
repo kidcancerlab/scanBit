@@ -14,8 +14,6 @@ RoxygenNote: 7.2.3
 Imports:
     magrittr,
     dplyr,
-    tibble,
-    Seurat,
     readr,
     stringr,
     utils,
@@ -25,7 +23,9 @@ Depends: R (>= 3.5.0)
 Suggests:
     rmarkdown,
     knitr,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    tibble,
+    Seurat
 Config/testthat/edition: 3
 NeedsCompilation: no
 Packaged: 2021-06-03 17:21:13 UTC; mvc002

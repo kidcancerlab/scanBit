@@ -5,7 +5,7 @@
 #SBATCH --job-name rrrSNVs_dist
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=20
+#SBATCH --cpus-per-task=10
 ##SBATCH --mem=10G # Figure this out later
 #SBATCH --partition=himem,general
 #SBATCH --wait
@@ -24,7 +24,7 @@ conda activate rrrSNVs_xkcd_1337
 
 python \
     placeholder_py_script \
-        --processes 20 \
+        --processes 10 \
         --bcf placeholder_bcf_input \
         --min_snvs_for_cluster placeholder_min_snvs \
         --max_prop_missing placeholder_max_missing \

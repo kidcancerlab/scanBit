@@ -11,7 +11,9 @@
 #' @param sbatch_base The prefix to use with the sbatch job file.
 #' @param account The hpc account to use.
 #' @param ploidy Either a file path to a ploidy file, or a string indicating
-#'   the ploidy. #### PUT EXAMPLES HERE ####
+#'   the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
+#'   call --ploidy-file option description here:
+#'   https://samtools.github.io/bcftools/bcftools.html#:~:text=%2D%2D-,ploidy,-ASSEMBLY%5B%3F
 #' @param ref_fasta The path to the reference fasta file.
 #' @param min_depth The minimum depth to use when calling SNPs. Can be a vector
 #'   of numbers.
@@ -480,7 +482,7 @@ group_clusters_by_dist <- function(
             "placeholder_slurm_out",            paste0(
                                                     temp_dir, "/",
                                                     slurm_base,
-                                                    "_dist-%j.out"
+                                                    "dist_-%j.out"
                                                 ),
             "placeholder_py_script",            py_file,
             "placeholder_bcf_input",            merged_bcf_file,

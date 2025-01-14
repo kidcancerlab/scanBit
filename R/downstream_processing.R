@@ -11,9 +11,9 @@
 #' @param new_column A string specifying the name of the new column to be added
 #'   to the Seurat object's metadata.
 #' @param cell_group A string specifying the name of the column in the Seurat
-#'   object's metadata that contains the cluster information. Default is
-#'   "used_clusters". This is the same column used in `get_snp_tree()` in the
-#'   table provided to the cellid_bam_table argument.
+#'   object's metadata that contains the cluster information.This is the same
+#'   column used in `get_snp_tree()` in the table provided to the
+#'   cellid_bam_table argument.
 #'
 #' @return The Seurat object with the new column added to its metadata.
 #'
@@ -30,7 +30,7 @@
 add_snv_group_to_sobj <- function(sobject,
                                   snv_group_file,
                                   new_column,
-                                  cell_group = "used_clusters") {
+                                  cell_group) {
     cluster_group_key <-
         readr::read_tsv(
             file = snv_group_file,
@@ -39,11 +39,17 @@ add_snv_group_to_sobj <- function(sobject,
         ) %>%
         dplyr::pull("dist_group", name = cluster)
 
-    sobj[[new_column]] <-
-        cluster_group_key[sobj@meta.data[[cell_group]]] %>%
+    if (!cell_group %in% colnames(sobject@meta.data)) {
+        stop("cell_group column: '",
+             cell_group,
+             "' not found in sobject metadata")
+    }
+
+    sobject[[new_column]] <-
+        cluster_group_key[sobject@meta.data[[cell_group]]] %>%
         as.vector()
 
-    return(sobj)
+    return(sobject)
 }
 
 #' Label Tumor Groups in a Seurat Object Using SNV Groups
@@ -97,7 +103,10 @@ label_tumor_cells <- function(sobject,
 
     if (!is.null(normal_clusters)) {
         norm_snv_groups <-
-            table(sobject$used_clusters, sobject$snv_group_20) %>%
+            table(
+                sobject@meta.data[[cell_group]],
+                sobject@meta.data[[snv_group_col]]
+            ) %>%
             as.data.frame() %>%
             dplyr::rename("groups" = "Var1", "snv_group" = "Var2") %>%
             dplyr::filter(Freq > 0) %>%

@@ -54,7 +54,7 @@ get_snp_tree <- function(cellid_bam_table,
                          min_snvs_per_cluster = 500,
                          max_prop_missing_at_site = 0.9,
                          n_bootstraps = 1000,
-                         bootstrap_cutoff = 0.95,
+                         bootstrap_cutoff = 0.99,
                          verbose = TRUE,
                          submit = TRUE,
                          cleanup = TRUE) {
@@ -432,7 +432,7 @@ merge_bcfs <- function(bcf_in_dir,
 #'   allowed at a variant site. Default is 0.9.
 #' @param n_bootstraps Numeric. Number of bootstrap iterations. Default is 1000.
 #' @param bootstrap_cutoff Numeric. Bootstrap cutoff threshold to use for
-#'   collapsing groups of samples (clusters). Default is 0.95.
+#'   collapsing groups of samples (clusters). Default is 0.99.
 #' @param tree_figure_file Character. Path to the output tree figure.
 #' @param verbose Logical. If TRUE, enables verbose output. Default is TRUE.
 #' @param sbatch_base Character. Base name for SLURM batch scripts. Can put
@@ -460,7 +460,7 @@ group_clusters_by_dist <- function(
     min_snvs_per_cluster = 500,
     max_prop_missing_at_site = 0.9,
     n_bootstraps = 1000,
-    bootstrap_cutoff = 0.95,
+    bootstrap_cutoff = 0.99,
     tree_figure_file,
     verbose = TRUE,
     sbatch_base = "sbatch_dist",

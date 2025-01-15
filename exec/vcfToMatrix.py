@@ -33,7 +33,7 @@ parser.add_argument('--n_bootstrap',
                     help = 'number of bootstrap samples to use')
 parser.add_argument('--bootstrap_threshold',
                     type = float,
-                    default = 0.95,
+                    default = 0.99,
                     help = 'threshold for collapsing clusters')
 parser.add_argument('--verbose',
                     action = 'store_true',

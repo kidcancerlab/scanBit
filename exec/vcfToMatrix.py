@@ -76,13 +76,18 @@ def main():
 
     collapsed_clusters = collapse_clusters(original_clusters,
                                            bootstrap_values,
-                                           threshold=args.bootstrap_threshold, samples = samples)
+                                           threshold=args.bootstrap_threshold)
+
+    top_lvl_clusters = collapse_top_lvl_clusters(original_clusters,
+                                                 bootstrap_values,
+                                                 threshold=args.bootstrap_threshold)
 
     clusters_with_names = [[str(samples[x]) for x in cluster] for cluster in collapsed_clusters]
+    top_lvl_clusters_with_names = [[str(samples[x]) for x in cluster] for cluster in top_lvl_clusters]
 
-    for i in range(len(clusters_with_names)):
-        for sample in clusters_with_names[i]:
-            print(f"{sample}\tgroup_{i}")
+    print_cluster_names(clusters_with_names, top_lvl_clusters_with_names)
+
+    return()
 
 
 ########
@@ -224,7 +229,7 @@ def plot_dendro_with_bootstrap_values(hclust, bootstrap_values, samples):
 
 def collapse_clusters(true_clusters,
                       bootstrap_values,
-                      threshold = args.bootstrap_threshold, samples = None):
+                      threshold = args.bootstrap_threshold):
     parent_dict = {'none': 'fork'}
     # loop over each cluster, starting with the largest
     for cluster_num in range(len(bootstrap_values) - 1, -1, -1):
@@ -244,6 +249,17 @@ def collapse_clusters(true_clusters,
     clusters.remove('fork')
     return [true_clusters[x] for x in clusters]
 
+def collapse_top_lvl_clusters(true_clusters,
+                              bootstrap_values,
+                              threshold = args.bootstrap_threshold):
+    top_lvl = len(bootstrap_values) - 1
+    # top_lvl bootstrap value is the first division
+    if bootstrap_values[top_lvl] >= threshold:
+        # top cluster is everything, next two is the first split
+        return [true_clusters[top_lvl - 1], true_clusters[top_lvl - 2]]
+    else:
+        return [true_clusters[top_lvl]]
+
 def find_parent_node(node_id, true_clusters):
     for i in range(node_id + 1, len(true_clusters)):
         if true_clusters[node_id][0] in true_clusters[i]:
@@ -260,6 +276,22 @@ def is_parent_a_fork(parent_dict, node_id, true_clusters):
     else:
         raise ValueError(f"Parent node {parent_node} not found in parent_dict")
 
+def print_cluster_names(clusters_with_names, top_lvl_clusters_with_names):
+    cluster_name_dict = {}
+    # We're going to put both datasets into the same dictionary using the sample
+    # name as the key with sub-dictionaries for all_groups and top_lvl_groups
+    # Then we will loop over the dictionary to print out the group names for
+    # each cluster name
+    for i in range(len(clusters_with_names)):
+        for sample in clusters_with_names[i]:
+            cluster_name_dict[sample] = {'all_groups': 'group' + str(i)}
+
+    for i in range(len(top_lvl_clusters_with_names)):
+        for sample in top_lvl_clusters_with_names[i]:
+            cluster_name_dict[sample]['top_lvl_groups'] = 'top_lvl_group' + str(i)
+
+    for this_key in cluster_name_dict.keys():
+        print(f'{this_key}\t{cluster_name_dict[this_key]["all_groups"]}\t{cluster_name_dict[this_key]["top_lvl_groups"]}')
 
 ################################################################################
 ### main

@@ -13,7 +13,7 @@
 #' @param ploidy Either a file path to a ploidy file, or a string indicating
 #'   the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
 #'   call --ploidy-file option description here:
-#'   https://samtools.github.io/bcftools/bcftools.html#:~:text=%2D%2D-,ploidy,-ASSEMBLY%5B%3F
+#'   "https://samtools.github.io/bcftools/bcftools.html"
 #' @param ref_fasta The path to the reference fasta file.
 #' @param min_depth The minimum depth to use when calling SNPs. Can be a vector
 #'   of numbers.

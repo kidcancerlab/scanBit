@@ -45,7 +45,7 @@ bam_file column should contain the path to the bam file for that cell.}
 \item{ploidy}{Either a file path to a ploidy file, or a string indicating
 the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
 call --ploidy-file option description here:
-https://samtools.github.io/bcftools/bcftools.html#:~:text=%2D%2D-,ploidy,-ASSEMBLY%5B%3F}
+"https://samtools.github.io/bcftools/bcftools.html"}
 
 \item{ref_fasta}{The path to the reference fasta file.}
 

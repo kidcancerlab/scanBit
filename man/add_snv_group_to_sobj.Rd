@@ -4,12 +4,7 @@
 \alias{add_snv_group_to_sobj}
 \title{Add SNV Group to Seurat Object}
 \usage{
-add_snv_group_to_sobj(
-  sobject,
-  snv_group_file,
-  new_column,
-  cell_group = "used_clusters"
-)
+add_snv_group_to_sobj(sobject, snv_group_file, new_column, cell_group)
 }
 \arguments{
 \item{sobject}{A Seurat object to which the SNV group information will be added.}
@@ -22,9 +17,9 @@ containing the SNV group information. The file should have two columns:
 to the Seurat object's metadata.}
 
 \item{cell_group}{A string specifying the name of the column in the Seurat
-object's metadata that contains the cluster information. Default is
-"used_clusters". This is the same column used in `get_snp_tree()` in the
-table provided to the cellid_bam_table argument.}
+object's metadata that contains the cluster information.This is the same
+column used in `get_snp_tree()` in the table provided to the
+cellid_bam_table argument.}
 }
 \value{
 The Seurat object with the new column added to its metadata.

@@ -18,7 +18,7 @@ get_snp_tree(
   min_snvs_per_cluster = 500,
   max_prop_missing_at_site = 0.9,
   n_bootstraps = 1000,
-  bootstrap_cutoff = 0.95,
+  bootstrap_cutoff = 0.99,
   verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE
@@ -43,7 +43,9 @@ bam_file column should contain the path to the bam file for that cell.}
 \item{account}{The hpc account to use.}
 
 \item{ploidy}{Either a file path to a ploidy file, or a string indicating
-the ploidy. #### PUT EXAMPLES HERE ####}
+the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
+call --ploidy-file option description here:
+https://samtools.github.io/bcftools/bcftools.html#:~:text=%2D%2D-,ploidy,-ASSEMBLY%5B%3F}
 
 \item{ref_fasta}{The path to the reference fasta file.}
 

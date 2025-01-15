@@ -10,7 +10,7 @@ group_clusters_by_dist(
   min_snvs_per_cluster = 500,
   max_prop_missing_at_site = 0.9,
   n_bootstraps = 1000,
-  bootstrap_cutoff = 0.95,
+  bootstrap_cutoff = 0.99,
   tree_figure_file,
   verbose = TRUE,
   sbatch_base = "sbatch_dist",
@@ -35,7 +35,7 @@ allowed at a variant site. Default is 0.9.}
 \item{n_bootstraps}{Numeric. Number of bootstrap iterations. Default is 1000.}
 
 \item{bootstrap_cutoff}{Numeric. Bootstrap cutoff threshold to use for
-collapsing groups of samples (clusters). Default is 0.95.}
+collapsing groups of samples (clusters). Default is 0.99.}
 
 \item{tree_figure_file}{Character. Path to the output tree figure.}
 

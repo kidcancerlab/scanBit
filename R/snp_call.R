@@ -183,7 +183,7 @@ get_snp_tree <- function(cellid_bam_table,
             verbose = verbose,
             sbatch_base = sbatch_base,
             account = account,
-            slurm_base = paste0(slurm_base, "_dist-%j.txt"),
+            slurm_base = slurm_base,
             temp_dir = temp_dir,
             submit = submit
         )
@@ -311,7 +311,7 @@ call_snps <- function(cellid_bam_table,
                                 "snp_call_mpileup_template.job",
                                 warning_label = "Calling SNPs",
                                 submit = submit,
-                                file_dir = ".",
+                                file_dir = temp_dir,
                                 temp_prefix = paste0(sbatch_base, "mpileup_"))
         })
     # Delete contents of the split_bams folder
@@ -320,7 +320,7 @@ call_snps <- function(cellid_bam_table,
         system(paste0(
             "rm ",
             bam_out_dir,
-            "/split_bams_*/*.bam$"
+            "*.bam$"
         ))
     }
     return(0)

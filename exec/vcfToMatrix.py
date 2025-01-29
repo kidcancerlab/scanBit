@@ -1,18 +1,19 @@
 import argparse
+import sys
 from pysam import VariantFile
 import numpy as np
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import linkage, dendrogram, cut_tree
 from scipy.spatial.distance import squareform
 import matplotlib
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 import multiprocessing
-from itertools import repeat
+from itertools import repeat, compress
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--bcf',
                     type = str,
-                    default=  'output/mergedtest_two_sobj_c20.bcf',
+                    default=  '/home/gdrobertslab/lab/Analysis/Matt/24_Osteo_atlas/output/id_tumor/snvs/SJOS013769_D1/mergedSJOS013769_D1_c5.bcf',
                     help = 'BCF file with multiple samples as columns')
 parser.add_argument('--figure_file',
                     '-o',
@@ -21,7 +22,7 @@ parser.add_argument('--figure_file',
                     help = 'output file name of plot. Id suggest either png or pdf')
 parser.add_argument('--min_snvs_for_cluster',
                     type = int,
-                    default = 500,
+                    default = 1000,
                     help = 'minimum number of SNVs for a cluster to be included')
 parser.add_argument('--max_prop_missing',
                     type = float,
@@ -43,6 +44,18 @@ parser.add_argument('--processes',
                     type = int,
                     default = 1,
                     help = 'number of processes to use for parallel processing')
+parser.add_argument('--fig_width',
+                    type = float,
+                    default = 6,
+                    help = 'width of the figure in inches')
+parser.add_argument('--fig_height',
+                    type = float,
+                    default = 6,
+                    help = 'height of the figure in inches')
+parser.add_argument('--fig_dpi',
+                    type = int,
+                    default = 300,
+                    help = 'dpi of the figure')
 
 args = parser.parse_args()
 
@@ -70,15 +83,16 @@ def main():
     bootstrap_values = calculate_bootstrap_values(original_clusters,
                                                   bootstrap_clusters)
 
+    plt.figure(figsize=(args.fig_width, args.fig_height))
     plot = plot_dendro_with_bootstrap_values(hclust_out, bootstrap_values, samples)
     plot.tight_layout()
-    plot.savefig(args.figure_file)
+    plot.savefig(args.figure_file, dpi = args.fig_dpi)
 
     collapsed_clusters = collapse_clusters(original_clusters,
                                            bootstrap_values,
                                            threshold=args.bootstrap_threshold)
 
-    top_lvl_clusters = collapse_top_lvl_clusters(original_clusters,
+    top_lvl_clusters = collapse_top_lvl_clusters(hclust_out,
                                                  bootstrap_values,
                                                  threshold=args.bootstrap_threshold)
 
@@ -128,6 +142,12 @@ def get_diff_matrix_from_bcf(bcf_file,
     differences, samples = filter_diff_matrix(differences,
                                               samples,
                                               min_snvs_for_cluster)
+
+    if differences.shape[1] == 0:
+        sys.exit(
+            f'No clusters with at least {min_snvs_for_cluster} SNVs for {args.bcf}'
+        )
+
     return differences, samples
 
 def pad_len_1_genotype(gt):
@@ -249,16 +269,32 @@ def collapse_clusters(true_clusters,
     clusters.remove('fork')
     return [true_clusters[x] for x in clusters]
 
-def collapse_top_lvl_clusters(true_clusters,
+def collapse_top_lvl_clusters(hclust,
                               bootstrap_values,
                               threshold = args.bootstrap_threshold):
     top_lvl = len(bootstrap_values) - 1
     # top_lvl bootstrap value is the first division
     if bootstrap_values[top_lvl] >= threshold:
-        # top cluster is everything, next two is the first split
-        return [true_clusters[top_lvl - 1], true_clusters[top_lvl - 2]]
+        split_clusters = cut_tree(hclust, n_clusters=2).reshape(-1)
+
+        output_list = [[], []]
+        output_list[0] = list(
+            compress(
+                list(range(len(split_clusters))),
+                split_clusters == 0
+                )
+            )
+
+        output_list[1] = list(
+            compress(
+                list(range(len(split_clusters))),
+                split_clusters == 1
+                )
+            )
     else:
-        return [true_clusters[top_lvl]]
+        output_list = [list(range(len(bootstrap_values)))]
+
+    return output_list
 
 def find_parent_node(node_id, true_clusters):
     for i in range(node_id + 1, len(true_clusters)):

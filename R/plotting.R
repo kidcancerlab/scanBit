@@ -32,11 +32,21 @@ assemble_tree_plots <- function(fig_folder,
                         fig_folder, "/",
                         sample_id, "_", this_depth, "_tree.png"
                     )
-                ggplot2::ggplot() +
-                    ggpubr::background_image(png::readPNG(png_path)) +
-                    ggplot2::coord_fixed() +
-                    ggplot2::ggtitle(paste0("Depth: ", this_depth))
-
+                if (file.exists(png_path)) {
+                    plot_out <-
+                        ggplot2::ggplot() +
+                        ggpubr::background_image(png::readPNG(png_path)) +
+                        ggplot2::coord_fixed() +
+                        ggplot2::ggtitle(paste0("Depth: ", this_depth))
+                } else {
+                    plot_out <-
+                        ggplot2::ggplot() +
+                        ggplot2::ggtitle(paste0("Depth: ", this_depth)) +
+                        ggplot2::theme_void() +
+                        ggplot2::geom_text(ggplot2::aes(label = "No plot available"),
+                                                    x = 0.5, y = 0.5)
+                }
+                return(plot_out)
             }
         )
     assembled_plots <- patchwork::wrap_plots(plot_list, ncol = 1)

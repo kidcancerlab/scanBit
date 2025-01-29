@@ -320,7 +320,7 @@ call_snps <- function(cellid_bam_table,
         system(paste0(
             "rm ",
             bam_out_dir,
-            "*.bam$"
+            "*.bam"
         ))
     }
     return(0)

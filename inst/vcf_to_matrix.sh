@@ -15,9 +15,7 @@ set -e ### stops bash script if line ends with error
 echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
 
 ml purge
-ml load GCC/10.3.0 \
-        BCFtools/1.12 \
-        miniforge3/24.3.0
+ml load miniforge3/24.3.0
 
 eval "$(conda shell.bash hook)"
 conda activate rrrSNVs_xkcd_1337

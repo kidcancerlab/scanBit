@@ -18,7 +18,11 @@ Imports:
     stringr,
     utils,
     stats,
-    rlang
+    rlang,
+    ggplot2,
+    patchwork,
+    png,
+    ggpubr
 Depends: R (>= 3.5.0)
 Suggests:
     rmarkdown,

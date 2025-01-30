@@ -69,5 +69,5 @@ dependencies:
       - six==1.17.0
       - tzdata==2025.1
 variables:
-  rrrSnvs_version: 0.2.0
+  rrrSnvs_version: 0.3.0
 prefix: /home/gdrobertslab/mvc002/.conda/envs/rrrSNVs_xkcd_1337

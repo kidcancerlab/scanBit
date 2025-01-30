@@ -103,12 +103,12 @@ check_cmd <- function(cmd) {
 #'
 #' @noRd
 make_sbatch_other_string <- function(other_sbatch_options) {
-    if (other_sbatch_options != "") {
-        other_sbatch_options <-
-            paste("#SBATCH", other_sbatch_options, collapse = "\n")
+    if (length(other_sbatch_options) == 1 && other_sbatch_options == "") {
+        sbatch_string <- ""
     } else {
-        other_sbatch_options <- ""
+        sbatch_string <-
+            paste("#SBATCH", other_sbatch_options, collapse = "\n")
     }
 
-    return(other_sbatch_options)
+    return(sbatch_string)
 }

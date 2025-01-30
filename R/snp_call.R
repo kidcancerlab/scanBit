@@ -146,7 +146,8 @@ get_snp_tree <- function(cellid_bam_table,
             sbatch_base = sbatch_base,
             account = account,
             temp_dir = temp_dir,
-            cleanup = cleanup
+            cleanup = cleanup,
+            other_sbatch_options = other_sbatch_options
         )
     })
 
@@ -386,6 +387,7 @@ merge_bcfs <- function(bcf_in_dir,
                        temp_dir,
                        cleanup = TRUE,
                        other_sbatch_options = "") {
+    sbatch_other <- make_sbatch_other_string(other_sbatch_options)
 
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
@@ -398,7 +400,7 @@ merge_bcfs <- function(bcf_in_dir,
                                             slurm_base,
                                             "_merge-%j.out"
                                         ),
-            "placeholder_sbatch_other", ,
+            "placeholder_sbatch_other", sbatch_other,
             "placeholder_bcf_out",      out_bcf,
             "placeholder_bcf_dir",      bcf_in_dir
         )
@@ -468,12 +470,7 @@ group_clusters_by_dist <- function(
     verbose_setting <-
         dplyr::if_else(verbose, "--verbose", "")
 
-    if (!missing(other_sbatch_options)) {
-        other_sbatch_options <-
-            paste("#SBATCH", other_sbatch_options, collapse = "\n")
-    } else {
-        other_sbatch_options <- ""
-    }
+    sbatch_other <- make_sbatch_other_string(other_sbatch_options)
 
     replace_tibble_dist <-
         dplyr::tribble(
@@ -484,7 +481,7 @@ group_clusters_by_dist <- function(
                                                     slurm_base,
                                                     "dist_-%j.out"
                                                 ),
-            "placeholder_sbatch_other",         other_sbatch_options,
+            "placeholder_sbatch_other",         sbatch_other,
             "placeholder_py_script",            py_file,
             "placeholder_bcf_input",            merged_bcf_file,
             "placeholder_min_snvs",             as.character(min_snvs_per_cluster),

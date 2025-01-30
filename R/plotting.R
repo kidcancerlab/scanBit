@@ -43,8 +43,11 @@ assemble_tree_plots <- function(fig_folder,
                         ggplot2::ggplot() +
                         ggplot2::ggtitle(paste0("Depth: ", this_depth)) +
                         ggplot2::theme_void() +
-                        ggplot2::geom_text(ggplot2::aes(label = "No plot available"),
-                                                    x = 0.5, y = 0.5)
+                        ggplot2::geom_text(
+                            x = 0.5,
+                            y = 0.5,
+                            ggplot2::aes(label = "No plot available")
+                        )
                 }
                 return(plot_out)
             }

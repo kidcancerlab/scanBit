@@ -9,6 +9,7 @@
 ##SBATCH --mem=10G # Figure this out later
 #SBATCH --partition=himem,general
 #SBATCH --wait
+placeholder_sbatch_other
 
 set -e ### stops bash script if line ends with error
 

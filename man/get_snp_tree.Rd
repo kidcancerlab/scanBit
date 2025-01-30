@@ -21,7 +21,8 @@ get_snp_tree(
   bootstrap_cutoff = 0.99,
   verbose = TRUE,
   submit = TRUE,
-  cleanup = TRUE
+  cleanup = TRUE,
+  other_sbatch_options = ""
 )
 }
 \arguments{
@@ -70,6 +71,10 @@ be considered a valid grouping.}
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 
 \item{cleanup}{Whether to clean up the temporary files after execution.}
+
+\item{other_sbatch_options}{Other options to pass to the sbatch command. This
+should be a list of strings. Do not put "#SBATCH" in front of the
+strings.}
 }
 \value{
 TRUE if the function succeeded. Output is written to output_dir.

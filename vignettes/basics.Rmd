@@ -58,16 +58,24 @@ c_b_t <-
            cell_barcode = str_remove(cell_barcode, ".+_"))
 
 snp_tree <-
-    get_snp_tree(cellid_bam_table = c_b_t,
-                 ploidy = "GRCh37",
-                 output_dir = "output",
-                 output_base_name = "test_two_sobj",
-                 ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
-                 min_depth = c(5, 10, 20),
-                 sbatch_base = "two_sobj",
-                 min_snvs_per_cluster = 1000,
-                 max_prop_missing_at_site = 0.9,
-                 cleanup = FALSE)
+    get_snp_tree(
+        cellid_bam_table = c_b_t,
+        temp_dir = "output/temp",
+        ploidy = "GRCh37",
+        output_dir = "output",
+        output_base_name = "test_two_sobj",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        min_depth = c(5, 10, 20),
+        sbatch_base = "two_sobj",
+        min_snvs_per_cluster = 1000,
+        max_prop_missing_at_site = 0.9,
+        cleanup = FALSE,
+        other_sbatch_options = c(
+            "--time=8:00:00",
+            "--mail-type=ALL",
+            "--mail-user=matthew.cannon@nationwidechildrens.org"
+        )
+    )
 
 # Pngs of trees and text output is in output/ directory
 

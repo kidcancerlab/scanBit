@@ -29,6 +29,9 @@
 #' @param verbose Whether to print out verbose output or not.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #' @param cleanup Whether to clean up the temporary files after execution.
+#' @param other_sbatch_options Other options to pass to the sbatch command. This
+#'   should be a list of strings. Do not put "#SBATCH" in front of the
+#'   strings.
 #'
 #' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
 #'   our mixed species reference with species prefixes on chromosomes, mm10 is
@@ -57,7 +60,8 @@ get_snp_tree <- function(cellid_bam_table,
                          bootstrap_cutoff = 0.99,
                          verbose = TRUE,
                          submit = TRUE,
-                         cleanup = TRUE) {
+                         cleanup = TRUE,
+                         other_sbatch_options  = "") {
     check_cellid_bam_table(cellid_bam_table)
 
     ## Check that the conda command is available
@@ -112,7 +116,8 @@ get_snp_tree <- function(cellid_bam_table,
                 ref_fasta = ref_fasta,
                 temp_dir = temp_dir,
                 submit = submit,
-                cleanup = cleanup
+                cleanup = cleanup,
+                other_sbatch_options = other_sbatch_options
             )
         })
 
@@ -186,7 +191,8 @@ get_snp_tree <- function(cellid_bam_table,
             account = account,
             slurm_base = slurm_base,
             temp_dir = temp_dir,
-            submit = submit
+            submit = submit,
+            other_sbatch_options = other_sbatch_options
         )
     })
 
@@ -195,19 +201,11 @@ get_snp_tree <- function(cellid_bam_table,
 
 #' Call SNPs for a single bam file
 #'
+#' @inheritParams get_snp_tree
 #' @param cellid_bam_table A table with columns cell_id, cell_group and bam_file
 #' @param bam_to_use The bam file to use
 #' @param bam_out_dir The directory to write the bam files to
 #' @param bcf_dir The directory to write the bcf files to
-#' @param slurm_base The base name for the slurm output files. Don't include path
-#' @param sbatch_base The prefix to use with the sbatch job file
-#' @param account The hpc account to use in slurm scripts
-#' @param ploidy The ploidy of the organism. See details for more information
-#' @param ref_fasta The reference fasta file to use
-#' @param min_depth The minimum depth to use when calling snps
-#' @param temp_dir The directory to write temporary files to
-#' @param submit Whether or not to submit the slurm scripts
-#' @param cleanup Whether or not to clean up the bam files afterwards
 #'
 #' @return 0 if the snps were called successfully
 #'
@@ -226,11 +224,14 @@ call_snps <- function(cellid_bam_table,
                       min_depth = 5,
                       temp_dir,
                       submit = TRUE,
-                      cleanup = TRUE) {
+                      cleanup = TRUE,
+                      other_sbatch_options = "") {
     # Check that the bam and bcf directories exist, and if not, create them
     if (!dir.exists(bam_out_dir)) {
         dir.create(bam_out_dir)
     }
+
+    sbatch_other <- make_sbatch_other_string(other_sbatch_options)
 
     # write out the cell ids to a file with two columns: cell_id, cell_group
     cell_file <- paste0(bam_out_dir, "/cell_ids.txt")
@@ -255,6 +256,7 @@ call_snps <- function(cellid_bam_table,
                                             slurm_base,
                                             "_splitbams-%j.out"
                                         ),
+            "placeholder_sbatch_other", sbatch_other,
             "placeholder_cell_file",    cell_file,
             "placeholder_bam_file",     bam_to_use,
             "placeholder_bam_dir",      paste0(bam_out_dir, "/"),
@@ -290,19 +292,24 @@ call_snps <- function(cellid_bam_table,
 
         replace_tibble_snp <-
             dplyr::tribble(
-                ~find,                    ~replace,
-                "placeholder_account",    account,
-                "placeholder_slurm_out",  paste0(
+                ~find,                      ~replace,
+                "placeholder_account",      account,
+                "placeholder_slurm_out",    paste0(
                                                 temp_dir, "/",
                                                 slurm_base,
                                                 "_mpileup-%j.out"
-                                          ),
-                "placeholder_array_max",  as.character(array_max),
-                "placeholder_bam_dir",    bam_out_dir,
-                "placeholder_ref_fasta",  ref_fasta,
-                "placeholder_ploidy",     ploidy,
-                "placeholder_bcf_dir",    paste0(bcf_dir, "_c", this_min_depth),
-                "placeholder_min_depth",  as.character(this_min_depth)
+                                            ),
+                "placeholder_sbatch_other", sbatch_other,
+                "placeholder_array_max",    as.character(array_max),
+                "placeholder_bam_dir",      bam_out_dir,
+                "placeholder_ref_fasta",    ref_fasta,
+                "placeholder_ploidy",       ploidy,
+                "placeholder_bcf_dir",      paste0(
+                                                bcf_dir,
+                                                "_c",
+                                                this_min_depth
+                                            ),
+                "placeholder_min_depth",    as.character(this_min_depth)
             )
 
         # Call mpileup on each split_bams folder using a template and substituting
@@ -329,8 +336,7 @@ call_snps <- function(cellid_bam_table,
 
 #' Transform the ploidy argument into a valid argument for bcftools
 #'
-#' @param ploidy Either a file path to a ploidy file, or a string indicating
-#'  the ploidy.
+#' @inheritParams get_snp_tree
 #'
 #' @return A string that can be passed to use_sbatch_template() to fill in
 #'  placeholder_ploidy
@@ -364,14 +370,9 @@ pick_ploidy <- function(ploidy) {
 
 #' Merge bcfs generated by call_snps() and write out a distance matrix
 #'
+#' @inheritParams get_snp_tree
 #' @param bcf_in_dir The directory containing the bcfs to merge
 #' @param out_bcf The path to the output bcf file
-#' @param submit Whether to submit the job to slurm
-#' @param account The cluster account to use in the slurm script
-#' @param slurm_base The name of the slurm output file
-#' @param sbatch_base The prefix to use with the sbatch job file
-#' @param temp_dir The directory to write temporary files to
-#' @param cleanup Whether to delete the bcfs after merging
 #'
 #' @return 0 if successful
 #'
@@ -383,7 +384,8 @@ merge_bcfs <- function(bcf_in_dir,
                        slurm_base = "slurmOut",
                        sbatch_base = "sbatch_",
                        temp_dir,
-                       cleanup = TRUE) {
+                       cleanup = TRUE,
+                       other_sbatch_options = "") {
 
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
@@ -396,6 +398,7 @@ merge_bcfs <- function(bcf_in_dir,
                                             slurm_base,
                                             "_merge-%j.out"
                                         ),
+            "placeholder_sbatch_other", ,
             "placeholder_bcf_out",      out_bcf,
             "placeholder_bcf_dir",      bcf_in_dir
         )
@@ -424,25 +427,13 @@ merge_bcfs <- function(bcf_in_dir,
 #' hierarchical clustered tree. This provides mathematical testing of
 #' genotypic divergence between the samples (clusters).
 #'
+#' @inheritParams get_snp_tree
 #' @param merged_bcf_file Character. Path to the merged BCF file.
 #' @param output_file Character. Path to the output file for assigned groupings
 #'   per sample (cluster). Default is merged_bcf_file + "_dist.txt".
 #' @param min_snvs_per_cluster Numeric. Minimum number of SNVs per cluster.
 #'   Default is 500.
-#' @param max_prop_missing_at_site Numeric. Maximum proportion of missing data
-#'   allowed at a variant site. Default is 0.9.
-#' @param n_bootstraps Numeric. Number of bootstrap iterations. Default is 1000.
-#' @param bootstrap_cutoff Numeric. Bootstrap cutoff threshold to use for
-#'   collapsing groups of samples (clusters). Default is 0.99.
 #' @param tree_figure_file Character. Path to the output tree figure.
-#' @param verbose Logical. If TRUE, enables verbose output. Default is TRUE.
-#' @param sbatch_base Character. Base name for SLURM batch scripts. Can put
-#'   these in /tmp/ if you want. Default is "./sbatch_dist".
-#' @param account Character. SLURM account name. Default is "gdrobertslab".
-#' @param slurm_base Character. Path to the SLURM output file.
-#' @param temp_dir The directory to write temporary files to.
-#' @param submit Logical. If TRUE, submits the SLURM job. Default is TRUE. Used
-#'   mostly for testing.
 #'
 #' @return The result of the SLURM job submission.
 #'
@@ -468,13 +459,21 @@ group_clusters_by_dist <- function(
     account = "gdrobertslab",
     slurm_base = "slurmOut",
     temp_dir,
-    submit = TRUE) {
+    submit = TRUE,
+    other_sbatch_options) {
     py_file <-
         paste0(find.package("rrrSnvs"),
                "/exec/vcfToMatrix.py")
 
     verbose_setting <-
         dplyr::if_else(verbose, "--verbose", "")
+
+    if (!missing(other_sbatch_options)) {
+        other_sbatch_options <-
+            paste("#SBATCH", other_sbatch_options, collapse = "\n")
+    } else {
+        other_sbatch_options <- ""
+    }
 
     replace_tibble_dist <-
         dplyr::tribble(
@@ -485,6 +484,7 @@ group_clusters_by_dist <- function(
                                                     slurm_base,
                                                     "dist_-%j.out"
                                                 ),
+            "placeholder_sbatch_other",         other_sbatch_options,
             "placeholder_py_script",            py_file,
             "placeholder_bcf_input",            merged_bcf_file,
             "placeholder_min_snvs",             as.character(min_snvs_per_cluster),

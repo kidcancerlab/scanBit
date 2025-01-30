@@ -86,3 +86,29 @@ check_cmd <- function(cmd) {
     }
     return(0)
 }
+
+#' Generate SBATCH Options String
+#'
+#' This function takes a string of additional SBATCH options and formats it
+#' into a string suitable for inclusion in an SBATCH script. If the input
+#' string is empty, it prepends "#SBATCH" to each option and joins them with
+#' newline characters. If the input string is not empty, it returns an empty
+#' string.
+#'
+#' @param other_sbatch_options A character string containing additional SBATCH
+#'   options. If not empty, the function will format it with "#SBATCH" and
+#'   newlines. If empty, the function will return an empty string.
+#'
+#' @return A formatted character string of SBATCH options or an empty string.
+#'
+#' @noRd
+make_sbatch_other_string <- function(other_sbatch_options) {
+    if (other_sbatch_options != "") {
+        other_sbatch_options <-
+            paste("#SBATCH", other_sbatch_options, collapse = "\n")
+    } else {
+        other_sbatch_options <- ""
+    }
+
+    return(other_sbatch_options)
+}

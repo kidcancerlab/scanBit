@@ -17,7 +17,8 @@ group_clusters_by_dist(
   account = "gdrobertslab",
   slurm_base = "slurmOut",
   temp_dir,
-  submit = TRUE
+  submit = TRUE,
+  other_sbatch_options
 )
 }
 \arguments{
@@ -29,29 +30,33 @@ per sample (cluster). Default is merged_bcf_file + "_dist.txt".}
 \item{min_snvs_per_cluster}{Numeric. Minimum number of SNVs per cluster.
 Default is 500.}
 
-\item{max_prop_missing_at_site}{Numeric. Maximum proportion of missing data
-allowed at a variant site. Default is 0.9.}
+\item{max_prop_missing_at_site}{The maximum proportion of missing data
+allowed at a site.}
 
-\item{n_bootstraps}{Numeric. Number of bootstrap iterations. Default is 1000.}
+\item{n_bootstraps}{The number of bootstraps to use when evaluating grouping
+of samples in the hierarchical clustering tree.}
 
-\item{bootstrap_cutoff}{Numeric. Bootstrap cutoff threshold to use for
-collapsing groups of samples (clusters). Default is 0.99.}
+\item{bootstrap_cutoff}{The bootstrap cutoff to use when collapsing the tree.
+This is the proportion of bootstraps that must support a grouping for it to
+be considered a valid grouping.}
 
 \item{tree_figure_file}{Character. Path to the output tree figure.}
 
-\item{verbose}{Logical. If TRUE, enables verbose output. Default is TRUE.}
+\item{verbose}{Whether to print out verbose output or not.}
 
-\item{sbatch_base}{Character. Base name for SLURM batch scripts. Can put
-these in /tmp/ if you want. Default is "./sbatch_dist".}
+\item{sbatch_base}{The prefix to use with the sbatch job file.}
 
-\item{account}{Character. SLURM account name. Default is "gdrobertslab".}
+\item{account}{The hpc account to use.}
 
-\item{slurm_base}{Character. Path to the SLURM output file.}
+\item{slurm_base}{The directory to write slurm output files to.}
 
 \item{temp_dir}{The directory to write temporary files to.}
 
-\item{submit}{Logical. If TRUE, submits the SLURM job. Default is TRUE. Used
-mostly for testing.}
+\item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
+
+\item{other_sbatch_options}{Other options to pass to the sbatch command. This
+should be a list of strings. Do not put "#SBATCH" in front of the
+strings.}
 }
 \value{
 The result of the SLURM job submission.

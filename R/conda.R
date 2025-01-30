@@ -14,13 +14,14 @@ confirm_conda_env <- function() {
 
     conda_version_right <- right_conda_version()
 
+    conda_yml_file <-
+        paste0(find.package("rrrSnvs"),
+                "/conda.yml")
+
     if (env_found && conda_version_right) {
         return(TRUE)
     } else if (!env_found) {
         message("Creating required conda environment rrrSNVs_xkcd_1337")
-        conda_yml_file <-
-            paste0(find.package("rrrSnvs"),
-                   "/conda.yml")
 
         system(paste0("conda env create -n rrrSNVs_xkcd_1337 --file ",
                       conda_yml_file))

@@ -68,9 +68,10 @@ get_snp_tree <- function(cellid_bam_table,
 
     # Check that temp_dir exists, and if not, create it
     if (!dir.exists(temp_dir)) {
-        message("Creating temporary directory: ", temp_dir)
         dir.create(temp_dir)
     }
+    message("Using temporary directory: ", temp_dir)
+
 
     # Warn that this is going to take a while
     message("Hold onto your hat and get a coffee, this will take a while.")

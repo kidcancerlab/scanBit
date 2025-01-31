@@ -16,6 +16,9 @@ set -e ### stops bash script if line ends with error
 
 ml purge
 
+eval "$(conda shell.bash hook)"
+conda activate rrrSNVs_xkcd_1337
+
 echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
 
 bams_array=(placeholder_bam_dir/*bam)

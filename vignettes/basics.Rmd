@@ -84,15 +84,18 @@ two_sobj <-
     add_snv_group_to_sobj(
         two_sobj,
         snv_group_file = "output/test_two_sobj_5_dist.txt",
-        new_column = "snv_group_5"
+        new_column = "snv_group_5",
+        cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
         "output/test_two_sobj_10_dist.txt",
-        new_column = "snv_group_10"
+        new_column = "snv_group_10",
+        cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
         "output/test_two_sobj_20_dist.txt",
-        new_column = "snv_group_20"
+        new_column = "snv_group_20",
+        cell_group = "used_clusters"
     )
 
 DimPlot(
@@ -116,7 +119,7 @@ normal_clusters <-
 two_sobj <-
     label_tumor_cells(
         two_sobj,
-        group_col_name = "used_clusters",
+        cell_group = "used_clusters",
         snv_group_col = "snv_group_20",
         normal_clusters = normal_clusters,
         tumor_call_column = "snv_tumor_call_20"

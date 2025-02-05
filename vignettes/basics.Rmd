@@ -84,17 +84,17 @@ two_sobj <-
     add_snv_group_to_sobj(
         two_sobj,
         snv_group_file = "output/test_two_sobj_5_dist.txt",
-        new_column = "snv_group_5",
+        new_columns = c("snv_group_5", "snv_top_lvl_group_5"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
         "output/test_two_sobj_10_dist.txt",
-        new_column = "snv_group_10",
+        new_columns = c("snv_group_10", "snv_top_lvl_group_10"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
         "output/test_two_sobj_20_dist.txt",
-        new_column = "snv_group_20",
+        new_columns = c("snv_group_20", "snv_top_lvl_group_20"),
         cell_group = "used_clusters"
     )
 

@@ -4,12 +4,13 @@
 #' a provided SNV (single nucleotide variant) group file. The new column will
 #' contain the SNV group information for each cluster in the Seurat object.
 #'
-#' @param sobject A Seurat object to which the SNV group information will be added.
+#' @param sobject A Seurat object to which the SNV group information will be
+#'   added.
 #' @param snv_group_file A file path to a tab-separated values (TSV) file
 #'   containing the SNV group information. The file should have two columns:
 #'   "cluster" and "dist_group". This is output from `get_snp_tree()`.
-#' @param new_column A string specifying the name of the new column to be added
-#'   to the Seurat object's metadata.
+#' @param new_columns A string vector specifying the name of the new columns to
+#'   be added to the Seurat object's metadata.
 #' @param cell_group A string specifying the name of the column in the Seurat
 #'   object's metadata that contains the cluster information.This is the same
 #'   column used in `get_snp_tree()` in the table provided to the
@@ -29,15 +30,30 @@
 #' @export
 add_snv_group_to_sobj <- function(sobject,
                                   snv_group_file,
-                                  new_column,
+                                  new_columns = c(
+                                      "snv_group_",
+                                      "snv_top_lvl_group"
+                                  ),
                                   cell_group) {
     cluster_group_key <-
         readr::read_tsv(
             file = snv_group_file,
-            col_names = c("cluster", "dist_group"),
-            col_types = c("cf")
-        ) %>%
-        dplyr::pull("dist_group", name = cluster)
+            col_names = c(cell_group, new_columns),
+            show_col_types = FALSE
+        )
+
+    if (nrow(cluster_group_key) == 0) {
+        warning(snv_group_file, " has no data. Setting columns to 'unknown'")
+
+        sobject@meta.data[, new_columns] <- NA
+        return(sobject)
+    }
+
+    if (ncol(cluster_group_key) != length(c(cell_group, new_columns))) {
+        message("cell_group must be a vector of length 1 and new_columns must",
+                " be a vector to match other columns in snv_group_file")
+        stop("new_columns of improper length")
+    }
 
     if (!cell_group %in% colnames(sobject@meta.data)) {
         stop("cell_group column: '",
@@ -45,9 +61,20 @@ add_snv_group_to_sobj <- function(sobject,
              "' not found in sobject metadata")
     }
 
-    sobject[[new_column]] <-
-        cluster_group_key[sobject@meta.data[[cell_group]]] %>%
-        as.vector()
+    if (any(new_columns %in% colnames(sobject@meta.data))) {
+        message("new_columns already exists in sobject, overwriting")
+        sobject@meta.data[, new_columns] <- NULL
+    }
+
+    # by default, merge removes the rownames, so we need to add them back
+    sobject@meta.data <-
+        sobject@meta.data %>%
+        tibble::rownames_to_column("cell") %>%
+        dplyr::left_join(
+            cluster_group_key,
+            by = cell_group
+        ) %>%
+        tibble::column_to_rownames("cell")
 
     return(sobject)
 }
@@ -99,6 +126,17 @@ label_tumor_cells <- function(sobject,
                               tumor_call_column = "snv_tumor_call") {
     if (tumor_call_column %in% colnames(sobject@meta.data)) {
         message("tumor_call_column already exists in sobject, overwriting")
+    }
+
+    if (all(is.na(sobject@meta.data[[snv_group_col]]))) {
+        warning(
+            snv_group_col,
+            " is all NAs, add_snv_group_to_sobj() likely found an empty file",
+            " for snv_group_file. That would be the first thing to check."
+        )
+        sobject@meta.data[, tumor_call_column] <- "unknown"
+
+        return(sobject)
     }
 
     if (!is.null(normal_clusters)) {

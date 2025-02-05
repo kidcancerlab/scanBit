@@ -4,17 +4,23 @@
 \alias{add_snv_group_to_sobj}
 \title{Add SNV Group to Seurat Object}
 \usage{
-add_snv_group_to_sobj(sobject, snv_group_file, new_column, cell_group)
+add_snv_group_to_sobj(
+  sobject,
+  snv_group_file,
+  new_columns = c("snv_group_", "snv_top_lvl_group"),
+  cell_group
+)
 }
 \arguments{
-\item{sobject}{A Seurat object to which the SNV group information will be added.}
+\item{sobject}{A Seurat object to which the SNV group information will be
+added.}
 
 \item{snv_group_file}{A file path to a tab-separated values (TSV) file
 containing the SNV group information. The file should have two columns:
 "cluster" and "dist_group". This is output from `get_snp_tree()`.}
 
-\item{new_column}{A string specifying the name of the new column to be added
-to the Seurat object's metadata.}
+\item{new_columns}{A string vector specifying the name of the new columns to
+be added to the Seurat object's metadata.}
 
 \item{cell_group}{A string specifying the name of the column in the Seurat
 object's metadata that contains the cluster information.This is the same

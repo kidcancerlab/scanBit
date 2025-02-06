@@ -3,15 +3,19 @@ set -e
 
 # conda remove -n rrrSNVs_xkcd_1337 -y --all
 
-conda create -y -n rrrSNVs_xkcd_1337 python=3.12
+# remove r conda channel
+# conda config --remove channels r
+
+# set conda channel priority to strict
+conda config --set channel_priority strict
+
+mamba create -y -n rrrSNVs_xkcd_1337 python=3.12
 conda activate rrrSNVs_xkcd_1337
 
 conda env config vars set rrrSnvs_version=0.3.0
 
-conda install -y samtools
-conda install -y bcftools
+mamba install -y samtools bcftools
 
 pip install pysam numpy pandas matplotlib scipy
 
-
-conda env export > inst/conda.yml
+conda env export --no-builds > inst/conda.yml

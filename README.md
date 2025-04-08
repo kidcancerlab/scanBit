@@ -1,7 +1,5 @@
-# Roberts Lab R SNV single cell utilities
-
-> These are utility functions for use by the Roberts lab to analyze single cell
-> sequencing data.
+# SCAN-BIT
+Single Cell Altered Nucleotide Based Inference of Tumor
 
 ---
 
@@ -11,7 +9,7 @@
   * Make arguments inherit documentation from other functions instead of re-typing them
   * Vignette
   * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
-  * install bcftools and samtools in conda environment
+
 
 ---
 

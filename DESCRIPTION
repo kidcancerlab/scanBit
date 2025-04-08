@@ -1,4 +1,4 @@
-Package: rrrSnvs
+Package: scanBit
 Type: Package
 Title: A Set of Tools to Analyze SNV Data in Single Cell RNA-seq
 Version: 0.4.0

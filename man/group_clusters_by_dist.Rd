@@ -16,9 +16,9 @@ group_clusters_by_dist(
   sbatch_base = "sbatch_dist",
   account = "gdrobertslab",
   slurm_base = "slurmOut",
-  temp_dir,
+  temp_dir = tempdir(),
   submit = TRUE,
-  other_sbatch_options
+  other_sbatch_options = ""
 )
 }
 \arguments{

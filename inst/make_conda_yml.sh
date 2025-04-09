@@ -18,4 +18,4 @@ mamba install -y samtools bcftools
 
 pip install pysam numpy pandas matplotlib scipy
 
-conda env export --name scanBit_xkcd_1337 --no-builds > inst/conda.yml
+conda env export --name scanBit_xkcd_1337 --no-builds | grep -v "^prefix"> inst/conda.yml

@@ -1,8 +1,8 @@
 ---
-title: "Basics of {rrrSnvs}"
+title: "Basics of {scanBit}"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Basics of rrrSnvs}
+  %\VignetteIndexEntry{Basics of scanBit}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

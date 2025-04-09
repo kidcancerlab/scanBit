@@ -1,4 +1,4 @@
 library(testthat)
-library(rrrSnvs)
+library(scanBit)
 
-test_check("rrrSnvs")
+test_check("scanBit")

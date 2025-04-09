@@ -66,7 +66,7 @@ get_snp_tree <- function(cellid_bam_table,
 
     ## Check that the conda command is available
     check_cmd("conda")
-    # Check that conda environment rrrSNVs_xkcd_1337 exists, and if not,
+    # Check that conda environment scanBit_xkcd_1337 exists, and if not,
     # create it
     confirm_conda_env()
 
@@ -245,7 +245,7 @@ call_snps <- function(cellid_bam_table,
     # in a template and substituting out the placeholder fields
     # write the bam files to a subfolder for each source bam
     py_file <-
-        paste0(find.package("rrrSnvs"),
+        paste0(find.package("scanBit"),
                "/exec/getBarcodesFromBam.py")
 
     replace_tibble_split <-
@@ -350,12 +350,12 @@ call_snps <- function(cellid_bam_table,
 pick_ploidy <- function(ploidy) {
     if (file.exists(ploidy)) {
         return(paste("--ploidy-file", ploidy))
-    } else if (file.exists(paste0(find.package("rrrSnvs"),
+    } else if (file.exists(paste0(find.package("scanBit"),
                                   "/extdata/",
                                   ploidy,
                                   "_ploidy.txt"))) {
         return(paste0("--ploidy-file ",
-                      find.package("rrrSnvs"),
+                      find.package("scanBit"),
                       "/extdata/",
                       ploidy,
                       "_ploidy.txt"))
@@ -464,7 +464,7 @@ group_clusters_by_dist <- function(
     submit = TRUE,
     other_sbatch_options = "") {
     py_file <-
-        paste0(find.package("rrrSnvs"),
+        paste0(find.package("scanBit"),
                "/exec/vcfToMatrix.py")
 
     verbose_setting <-

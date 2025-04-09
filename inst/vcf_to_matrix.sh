@@ -2,7 +2,7 @@
 #SBATCH --account=placeholder_account
 #SBATCH --output=placeholder_slurm_out
 #SBATCH --error=placeholder_slurm_out
-#SBATCH --job-name rrrSNVs_dist
+#SBATCH --job-name scanBit_dist
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
@@ -19,7 +19,7 @@ ml purge
 ml load miniforge3/24.3.0
 
 eval "$(conda shell.bash hook)"
-conda activate rrrSNVs_xkcd_1337
+conda activate scanBit_xkcd_1337
 
 python \
     placeholder_py_script \

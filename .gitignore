@@ -10,5 +10,6 @@ slurm*
 inst/doc
 rrrSingleCellUtils.Rproj
 tempDir
-src/target
+src/rust/target
+src/.cargo
 output

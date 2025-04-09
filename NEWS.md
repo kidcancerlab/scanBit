@@ -1,3 +1,7 @@
+# scanBit 0.5.0
+- Finished work to rename the package
+- Completely refactored the code for bootstrapping in vcfToMatrix.py. The old version was not working properly.
+
 # rrrSnvs 0.4.0
 - Added option to specify other sbatch options
 - Updated add_snv_group_to_sobj and label_tumor_cells to handle the case when the code does not create a *dist.txt file due to insufficient cells, reads, etc..

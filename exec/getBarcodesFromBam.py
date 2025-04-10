@@ -2,6 +2,7 @@ import pysam
 import argparse
 import sys
 import os
+import numpy as np
 
 parser = argparse.ArgumentParser(description='Get sam entries for each cell barcode.')
 parser.add_argument('--cells',
@@ -19,9 +20,14 @@ parser.add_argument('--out_dir',
                     type=str,
                     default='test',
                     help='output bam file directory')
+parser.add_argument('--threads',
+                    '-t',
+                    type=int,
+                    default=5,
+                    help='threads for bam decompressing')
 parser.add_argument('--print_buffer_size',
                     type=int,
-                    default=1000,
+                    default=10000,
                     help='Number of sam entries per cell barcode to store before printing them out')
 parser.add_argument('--verbose',
                     action='store_true',
@@ -48,7 +54,10 @@ def add_to_label_dict(x):
 
 def populate_write_buffer(cell_barcodes):
     for one_cell_barcode in cell_barcodes:
-        print_buffer_dict[one_cell_barcode] = []
+        print_buffer_dict[one_cell_barcode] = {}
+        print_buffer_dict[one_cell_barcode]['data'] = \
+            np.empty(args.print_buffer_size, dtype=object)
+        print_buffer_dict[one_cell_barcode]['index'] = 0
 
 def open_bam_outs_from_labels(labels, bam_template):
     for label in labels:
@@ -59,7 +68,7 @@ def open_bam_outs_from_labels(labels, bam_template):
             sys.exit(1)
         else:
             bam_outs[label] = \
-                pysam.AlignmentFile(bam_file, 'wb', template = bam_template)
+                pysam.AlignmentFile(bam_file, 'wb', template = bam_template, threads = args.threads)
     return
 
 # For a single bam line, get the CB:Z and UB:Z tags, then if the CB:Z tag is in the
@@ -84,8 +93,11 @@ def process_line(line):
                 # add UB:Z tag to umi_dict
                 umi_dict[molecule] = 1
 
-                print_buffer_dict[one_cell_barcode].append(line)
-                if len(print_buffer_dict[one_cell_barcode]) >= args.print_buffer_size:
+                this_index = print_buffer_dict[one_cell_barcode]['index']
+                print_buffer_dict[one_cell_barcode]['data'][this_index] = line
+                print_buffer_dict[one_cell_barcode]['index'] = this_index + 1
+
+                if this_index == args.print_buffer_size - 1:
                     write_one_cb(one_cell_barcode)
 
     return
@@ -93,13 +105,16 @@ def process_line(line):
 def write_one_cb(one_cell_barcode):
     [
         bam_outs[label_dict[one_cell_barcode]].write(line)
-        for line in print_buffer_dict.get(one_cell_barcode)
+        for line in print_buffer_dict.get(one_cell_barcode)['data']
+        if line is not None
     ]
-    print_buffer_dict[one_cell_barcode] = []
+    print_buffer_dict[one_cell_barcode]['data'] = \
+            np.empty(args.print_buffer_size, dtype=object)
+    print_buffer_dict[one_cell_barcode]['index'] = 0                 # Changing the code to have pre-set array instead of copying data
 
 # make main function
 def main():
-    in_bam = pysam.AlignmentFile(args.bam, 'rb')
+    in_bam = pysam.AlignmentFile(args.bam, 'rb', threads = args.threads)
 
     # Read in cell barcodes
     # This assumes there is no header in barcode file

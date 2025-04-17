@@ -127,7 +127,7 @@ def get_diff_matrix_from_bcf(bcf_file,
                      '11':            2,
                      '(None, None)':  np.nan}
     ### Check if bcf index exists
-    bcf_in = VariantFile(bcf_file)
+    bcf_in = VariantFile(bcf_file, threads = args.processes)
     samples = tuple(bcf_in.header.samples)
     records = tuple(x for x in list(bcf_in.fetch()) if (len(x.alts) == 1))
     bcf_in.close()

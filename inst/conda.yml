@@ -68,4 +68,4 @@ dependencies:
       - six==1.17.0
       - tzdata==2025.2
 variables:
-  scanBit_version: 0.5.0
+  scanBit_version: 0.6.0

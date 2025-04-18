@@ -12,7 +12,7 @@ conda config --set channel_priority strict
 mamba create -y -n scanBit_xkcd_1337 python=3.12
 conda activate scanBit_xkcd_1337
 
-conda env config vars set scanBit_version=0.5.0
+conda env config vars set scanBit_version=0.6.0
 
 mamba install -y samtools bcftools
 

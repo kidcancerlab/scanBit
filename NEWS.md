@@ -1,3 +1,6 @@
+# scanBit 0.6.0
+- Completely refactored how I pull the reads for each cell from the bam file. I'm now using samtools directly in the pipe to do variant calling which speeds things up a lot.
+
 # scanBit 0.5.0
 - Finished work to rename the package
 - Completely refactored the code for bootstrapping in vcfToMatrix.py. The old version was not working properly.

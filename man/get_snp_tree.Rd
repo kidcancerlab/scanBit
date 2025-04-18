@@ -17,7 +17,7 @@ get_snp_tree(
   min_depth = 5,
   min_snvs_per_cluster = 500,
   max_prop_missing_at_site = 0.9,
-  n_bootstraps = 1000,
+  n_bootstraps = 10000,
   bootstrap_cutoff = 0.99,
   verbose = TRUE,
   submit = TRUE,
@@ -53,8 +53,8 @@ call --ploidy-file option description here:
 \item{min_depth}{The minimum depth to use when calling SNPs. Can be a vector
 of numbers.}
 
-\item{min_snvs_per_cluster}{The minimum number of sites that must be covered by
-a cell_group to be included in the tree.}
+\item{min_snvs_per_cluster}{The minimum number of sites that must be covered
+by a cell_group to be included in the tree.}
 
 \item{max_prop_missing_at_site}{The maximum proportion of missing data
 allowed at a site.}

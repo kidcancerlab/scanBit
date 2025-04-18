@@ -9,8 +9,8 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+    collapse = TRUE,
+    comment = "#>"
 )
 ```
 
@@ -57,6 +57,8 @@ c_b_t <-
                              "/outs/possorted_genome_bam.bam"),
            cell_barcode = str_remove(cell_barcode, ".+_"))
 
+start_time <- Sys.time()
+
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = c_b_t,
@@ -67,7 +69,7 @@ snp_tree <-
         ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
         min_depth = c(5, 10, 20),
         sbatch_base = "two_sobj",
-        min_snvs_per_cluster = 1000,
+        min_snvs_per_cluster = 500,
         max_prop_missing_at_site = 0.9,
         cleanup = FALSE,
         other_sbatch_options = c(
@@ -76,6 +78,10 @@ snp_tree <-
             "--mail-user=matthew.cannon@nationwidechildrens.org"
         )
     )
+
+end_time <- Sys.time()
+total_time <- end_time - start_time
+total_time
 
 # Pngs of trees and text output is in output/ directory
 
@@ -133,5 +139,4 @@ DimPlot(
     ncol = 2
 ) +
     NoLegend()
-
 ```

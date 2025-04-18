@@ -6,8 +6,8 @@
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=3
-#SBATCH --mem=80G
+#SBATCH --cpus-per-task=5
+#SBATCH --mem=5G
 #SBATCH --partition=himem,general
 #SBATCH --wait
 placeholder_sbatch_other
@@ -21,8 +21,8 @@ conda activate scanBit_xkcd_1337
 
 echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
 
-bams_array=(placeholder_bam_dir/*bam)
-bam_file=${bams_array[$SLURM_ARRAY_TASK_ID]}
+cell_file_array=(placeholder_cell_files)
+cell_file=${cell_file_array[$SLURM_ARRAY_TASK_ID]}
 
 if [ ! -d placeholder_bcf_dir ]
 then
@@ -33,21 +33,21 @@ fi
 # your cellid_bam_table. We use this label to name the output files and to
 # change the sample name during the mpileup call so that when we merge the bcfs
 # each column will have a unique name
-label=${bam_file%%.bam}
+label=${cell_file%%_cell_ids.txt}
 export label=${label##*/}
-export orig_samp_name=$(samtools view -H ${bam_file} | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
+export orig_samp_name=$(samtools view -H placeholder_bam_file | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
 
 echo ${label} ${orig_samp_name}
 
 samtools view \
-        -b \
+        -u \
         --threads 5 \
-        ${bam_file} \
-    | samtools sort \
-        -O BAM \
-        -m 7G \
+        --tag-file CB:${cell_file} \
+        placeholder_bam_file \
+    | samtools view \
+        -u \
         --threads 5 \
-        - \
+        --tag xf:25 \
     | bcftools mpileup \
         --threads 5 \
         --max-depth 8000 \
@@ -74,5 +74,5 @@ samtools view \
         -o placeholder_bcf_dir/${label}.bcf
 
 bcftools index \
-    --threads 10 \
+    --threads 5 \
     placeholder_bcf_dir/${label}.bcf

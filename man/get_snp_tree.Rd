@@ -9,8 +9,8 @@ get_snp_tree(
   temp_dir = tempdir(),
   output_dir,
   output_base_name = "hier_tree",
-  slurm_base = "/slurmOut",
-  sbatch_base = "sbatch_",
+  log_base = "/jobOut",
+  job_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,
   ref_fasta,
@@ -22,7 +22,9 @@ get_snp_tree(
   verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE,
-  other_sbatch_options = ""
+  other_job_header_options = "",
+  other_batch_options = "",
+  job_scheduler = "slurm"
 )
 }
 \arguments{
@@ -37,9 +39,9 @@ bam_file column should contain the path to the bam file for that cell.}
 
 \item{output_base_name}{The prefix to use with the output files.}
 
-\item{slurm_base}{The directory to write slurm output files to.}
+\item{log_base}{The directory to write job output files to.}
 
-\item{sbatch_base}{The prefix to use with the sbatch job file.}
+\item{job_base}{The prefix to use with the sbatch job file.}
 
 \item{account}{The hpc account to use.}
 
@@ -72,9 +74,12 @@ be considered a valid grouping.}
 
 \item{cleanup}{Whether to clean up the temporary files after execution.}
 
-\item{other_sbatch_options}{Other options to pass to the sbatch command. This
+\item{other_job_header_options}{Other options to pass to the sbatch command. This
 should be a list of strings. Do not put "#SBATCH" in front of the
 strings.}
+
+\item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
+"bash".}
 }
 \value{
 TRUE if the function succeeded. Output is written to output_dir.

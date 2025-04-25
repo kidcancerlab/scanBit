@@ -1,34 +1,35 @@
-#!/bin/sh
-#SBATCH --output=placeholder_job_log
-#SBATCH --error=placeholder_job_log
-#SBATCH --job-name=snp_call
-#SBATCH --array=0-placeholder_array_max
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=5G
-#SBATCH --wait
+#!/bin/bash
+#$ -cwd
+#$ -j y
+#$ -o placeholder_job_log
+#$ -l mem_free=10G
+#$ -pe thread 30            # this likely needs to be user specified
+#$ -N placeholder_job_name
+#$ -sync y                  # Wait for finish to continue
+#$ -t 0-placeholder_array_max
+#$ -tc 5                    # Max running tasks
 placeholder_job_header_other
 
 placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
+eval "$(conda shell.bash hook)"
 conda activate scanBit_xkcd_1337
 
 start_time=$(date +%s)
 
-echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
+echo ${HOSTNAME} ${SGE_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
 cell_file_array=(placeholder_cell_files)
-cell_file=${cell_file_array[$SLURM_ARRAY_TASK_ID]}
+cell_file=${cell_file_array[$SGE_TASK_ID]}
 
 if [ ! -d placeholder_bcf_dir ]
 then
     mkdir -p placeholder_bcf_dir
 fi
 
-# the bam files are written out with the filename determined by the label in
+# the bcf files are written out with the filename determined by the label in
 # your cellid_bam_table. We use this label to name the output files and to
 # change the sample name during the mpileup call so that when we merge the bcfs
 # each column will have a unique name

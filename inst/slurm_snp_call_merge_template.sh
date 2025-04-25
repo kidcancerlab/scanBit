@@ -1,24 +1,20 @@
 #!/bin/sh
-#SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out
-#SBATCH --error=placeholder_slurm_out
+#SBATCH --output=placeholder_job_log
+#SBATCH --error=placeholder_job_log
 #SBATCH --job-name=merge_bcfs
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=10G
-#SBATCH --partition=himem,general
 #SBATCH --wait
-placeholder_sbatch_other
+placeholder_job_header_other
+
+placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
 echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
 
-ml purge
-ml load Miniconda3/4.9.2
-
-eval "$(conda shell.bash hook)"
 conda activate scanBit_xkcd_1337
 
 bcftools merge \

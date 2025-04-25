@@ -68,14 +68,21 @@ snp_tree <-
         output_base_name = "test_two_sobj",
         ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
         min_depth = c(5, 10, 20),
-        sbatch_base = "two_sobj",
+        job_base = "two_sobj",
         min_snvs_per_cluster = 500,
         max_prop_missing_at_site = 0.9,
         cleanup = FALSE,
-        other_sbatch_options = c(
+        other_job_header_options = c(
             "--time=8:00:00",
             "--mail-type=ALL",
-            "--mail-user=matthew.cannon@nationwidechildrens.org"
+            "--mail-user=matthew.cannon@nationwidechildrens.org",
+            "--partition=himem,general"
+        ),
+        other_batch_options = c(
+            'eval "$(conda shell.bash hook)"',
+            "ml purge",
+            "ml miniforge3",
+            "echo Doing stuff!"
         )
     )
 
@@ -89,17 +96,17 @@ total_time
 two_sobj <-
     add_snv_group_to_sobj(
         two_sobj,
-        snv_group_file = "output/test_two_sobj_5_dist.txt",
+        snv_group_file = "output/test_two_sobj_5_groups.txt",
         new_columns = c("snv_group_5", "snv_top_lvl_group_5"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
-        "output/test_two_sobj_10_dist.txt",
+        snv_group_file = "output/test_two_sobj_10_groups.txt",
         new_columns = c("snv_group_10", "snv_top_lvl_group_10"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
-        "output/test_two_sobj_20_dist.txt",
+        snv_group_file = "output/test_two_sobj_20_groups.txt",
         new_columns = c("snv_group_20", "snv_top_lvl_group_20"),
         cell_group = "used_clusters"
     )

@@ -21,6 +21,8 @@ library(tidyverse)
 ```
 
 ## Using SNPs to define tumor clusters
+
+### Prep the input data
 ```{r eval=FALSE}
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
 
@@ -45,7 +47,17 @@ two_sobj$cell_type <-
 two_sobj$cell_score <-
     cell_assign$scores %>%
     apply(MARGIN = 1, function(x) max(x, na.rm = TRUE))
+```
 
+### Prepare input for scanBit
+This table has three columns, `cell_barcode`, `bam_file`, and `cell_group`.
+
+The `cell_barcode` column should contain the cell barcodes from the Seurat object. It is critical that the cell barcodes match the barcodes that will be found in the bam file. This means that if you appended/prepended sample labels to the barcodes in your Seurat object, you need to strip those off.
+
+The `bam_file` column should contain the absolute path to the BAM file for each cell.
+
+The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful.
+```{r eval=FALSE}
 c_b_t <-
     two_sobj@meta.data %>%
     select(used_clusters) %>%
@@ -56,7 +68,45 @@ c_b_t <-
                              str_remove(cell_barcode, "_.*"),
                              "/outs/possorted_genome_bam.bam"),
            cell_barcode = str_remove(cell_barcode, ".+_"))
+```
 
+### Run scanBit
+The tricky bit about running this is going to be making sure that your options for other_job_heading_options and other_batch_options are correct for your system if you are using a job scheduler on a HPC.
+
+For other_job_header_options, this is a vector of options as strings that will be passed to the job header. This is either sbatch, qsub header elements. The code will automatically prepend either #SBATCH or #$ to the argument as appropriate.
+
+For slurm, the code automatically adds the following header elements:
+
+--output
+--error
+--job-name
+--nodes
+--ntasks
+--cpus-per-task
+--mem
+--wait
+
+For SGE, the code automatically adds the following header elements:
+
+!!!
+figure this out
+!!!
+
+If you're using sge, you also need to specify the `--sge_q` and `--sge_pe` options. The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is the parallel environment you want to use. This is the value you would put where the word "threaded" is in the example below.
+
+`#$ -pe thread 30`
+
+So in in this example, you would add --sge_pe = "thread".
+
+
+If you need additional options in your job header, add them to the other_job_header_options vector.
+
+If you are in a HPC environment and you need to specify other options for a batch job that are outside of the job header, you can add them to the other_batch_options list. This is typically used for loading modules or conda environments, but you can put anything that is required in this vector. These commands will be run at the top of the batch job.
+
+
+If you want to test everything out, try running get_snp_tree with temp_dir set to an easy to access directory and submit = FALSE. This will generate the batch job scripts, but not submit them. Then you can look at the scripts to see if they look correct. You can also run the scripts manually to see if they work and what options you may need to add.
+
+```{r eval=FALSE}
 start_time <- Sys.time()
 
 snp_tree <-
@@ -75,7 +125,7 @@ snp_tree <-
         other_job_header_options = c(
             "--time=8:00:00",
             "--mail-type=ALL",
-            "--mail-user=matthew.cannon@nationwidechildrens.org",
+            "--mail-user=fake_email@not_a_real_domain.org",
             "--partition=himem,general"
         ),
         other_batch_options = c(

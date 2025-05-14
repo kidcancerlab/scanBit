@@ -29,9 +29,13 @@
 #' @param verbose Whether to print out verbose output or not.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #' @param cleanup Whether to clean up the temporary files after execution.
-#' @param other_job_header_options Other options to pass to the sbatch command. This
-#'   should be a list of strings. Do not put "#SBATCH" in front of the
-#'   strings.
+#' @param other_job_header_options Other options to pass to the batch job
+#'   header. This should be a list of strings. Do not put "#SBATCH" or "#$" in
+#'   front of the strings.
+#' @param other_batch_options Other options to pass to the batch job. These
+#'   optional strings will not be part of the header and will be placed verbatim
+#'   after the header. This is useful for passing module load commands, adding
+#'   to the path or other system-specific commands. Should be a list of strings.
 #' @param job_scheduler The job scheduler to use. One of "slurm", "sge" or
 #'   "bash".
 #'

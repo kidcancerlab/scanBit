@@ -56,9 +56,14 @@ be considered a valid grouping.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 
-\item{other_job_header_options}{Other options to pass to the sbatch command. This
-should be a list of strings. Do not put "#SBATCH" in front of the
-strings.}
+\item{other_job_header_options}{Other options to pass to the batch job
+header. This should be a list of strings. Do not put "#SBATCH" or "#$" in
+front of the strings.}
+
+\item{other_batch_options}{Other options to pass to the batch job. These
+optional strings will not be part of the header and will be placed verbatim
+after the header. This is useful for passing module load commands, adding
+to the path or other system-specific commands. Should be a list of strings.}
 
 \item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
 "bash".}

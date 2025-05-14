@@ -3,7 +3,8 @@
 #$ -j y
 #$ -o placeholder_job_log
 #$ -l mem_free=10G
-#$ -pe thread 30            # this likely needs to be user specified
+#$ -q all.q                 # this needs to be user specified
+#$ -pe thread 30            # this needs to be user specified
 #$ -N placeholder_job_name
 #$ -sync y                  # Wait for finish to continue
 #$ -t 0-placeholder_array_max

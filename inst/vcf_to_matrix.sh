@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
-##SBATCH --mem=10G # Figure this out later
+#SBATCH --mem=10G
 #SBATCH --partition=himem,general
 #SBATCH --wait
 placeholder_sbatch_other

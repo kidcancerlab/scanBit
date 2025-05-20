@@ -180,6 +180,13 @@ def calc_proportion_dist_matrix(differences, bootstrap=False):
                                                    size=differences.shape[0],
                                                    replace=True)]
     n_comps_matrix = np.sum(~np.isnan(differences), axis=0)
+
+    if n_comps_matrix.diagonal().min() == 0:
+        message = "One or more clusters have insufficient variants to " + \
+                  "generate a distance matrix. Try increasing " + \
+                  "the min_snvs_per_cluster value."
+        raise Exception(message)
+
     # Sum up differences while ignoring np.nan values
     sum_differences = np.nansum(differences, axis=0)
     # Calculate the proportion of differences

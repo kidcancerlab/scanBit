@@ -153,9 +153,9 @@ def get_diff_matrix_from_bcf(bcf_file,
                                               samples,
                                               min_snvs_for_cluster)
 
-    if differences.shape[1] == 0:
+    if differences.shape[1] < 2:
         sys.exit(
-            f'No clusters with at least {min_snvs_for_cluster} SNVs for {args.bcf}'
+            f'Not enough clusters with > {min_snvs_for_cluster} SNVs for {args.bcf}'
         )
 
     return differences, samples

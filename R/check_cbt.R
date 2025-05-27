@@ -13,7 +13,7 @@ check_cellid_bam_table <- function(cellid_bam_table) {
     }
 
     # Check that there are more than one group in cell_group
-    if (length(unique(cellid_bam_table$cell_group)) < 3) {
+    if (length(unique(cellid_bam_table$cell_group)) < 2) {
         stop("There should be more than one group in cell_group")
     }
 

@@ -4,7 +4,8 @@
 #'   cell_group and bam_file. The cell_barcode column should contain the cell
 #'   barcode, the cell_group column should contain the cluster label and the
 #'   bam_file column should contain the path to the bam file for that cell.
-#' @param temp_dir The directory to write temporary files to.
+#' @param temp_dir The directory to write temporary files to. This should be
+#'   unique to each sample run to avoid file collisions.
 #' @param output_dir The directory to write output distance files to.
 #' @param output_base_name The prefix to use with the output files.
 #' @param slurm_base The directory to write slurm output files to.
@@ -45,7 +46,7 @@
 #' placeholder for now
 #' }
 get_snp_tree <- function(cellid_bam_table,
-                         temp_dir = tempdir(),
+                         temp_dir = tempfile(pattern = "tempdir"),
                          output_dir,
                          output_base_name = "hier_tree",
                          slurm_base = "/slurmOut",

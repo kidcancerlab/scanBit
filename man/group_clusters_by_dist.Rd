@@ -50,7 +50,8 @@ be considered a valid grouping.}
 
 \item{slurm_base}{The directory to write slurm output files to.}
 
-\item{temp_dir}{The directory to write temporary files to.}
+\item{temp_dir}{The directory to write temporary files to. This should be
+unique to each sample run to avoid file collisions.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 

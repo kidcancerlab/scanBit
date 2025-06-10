@@ -13,7 +13,7 @@ placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
-echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
+echo ${HOSTNAME}
 
 conda activate scanBit_xkcd_1337
 

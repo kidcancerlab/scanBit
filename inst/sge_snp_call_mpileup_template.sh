@@ -2,9 +2,9 @@
 #$ -cwd
 #$ -j y
 #$ -o placeholder_job_log
-#$ -l mem_free=10G
-#$ -q all.q                 # this needs to be user specified
-#$ -pe thread 30            # this needs to be user specified
+#$ -l mem_free=5G
+#$ -q placeholder_sge_q                 # this needs to be user specified
+#$ -pe thread 5            # this needs to be user specified
 #$ -N placeholder_job_name
 #$ -sync y                  # Wait for finish to continue
 #$ -t 0-placeholder_array_max
@@ -15,12 +15,12 @@ placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
-eval "$(conda shell.bash hook)"
-conda activate scanBit_xkcd_1337
-
 start_time=$(date +%s)
 
 echo ${HOSTNAME} ${SGE_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
+
+eval "$(conda shell.bash hook)"
+conda activate scanBit_xkcd_1337
 
 cell_file_array=(placeholder_cell_files)
 cell_file=${cell_file_array[$SGE_TASK_ID]}

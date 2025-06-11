@@ -24,6 +24,8 @@ get_snp_tree(
   cleanup = TRUE,
   other_job_header_options = "",
   other_batch_options = "",
+  sge_q = "all.q",
+  sge_parallel_environment = "thread",
   job_scheduler = "slurm"
 )
 }
@@ -83,8 +85,16 @@ optional strings will not be part of the header and will be placed verbatim
 after the header. This is useful for passing module load commands, adding
 to the path or other system-specific commands. Should be a list of strings.}
 
+\item{sge_q}{Character string specifying the cluster queue when using sge as
+the job scheduler.}
+
+\item{sge_parallel_environment}{Character string specifying the parallel
+environment (part of the -pe argument in the header) when using sge as the
+job scheduler}
+
 \item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
-"bash".}
+"bash". If specifying "sge", sge_q and sge_parallel should be specified if
+defaults are not correct.}
 }
 \value{
 TRUE if the function succeeded. Output is written to output_dir.

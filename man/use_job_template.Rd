@@ -36,7 +36,8 @@ submission fails.}
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 
 \item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
-"bash".}
+"bash". If specifying "sge", sge_q and sge_parallel should be specified if
+defaults are not correct.}
 }
 \value{
 0 if the job submission was successful, otherwise an error is

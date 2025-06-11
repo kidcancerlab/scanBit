@@ -124,12 +124,17 @@ check_cmd <- function(cmd) {
 #' @return A formatted character string of SBATCH options or an empty string.
 #'
 #' @noRd
-make_sbatch_other_string <- function(other_sbatch_options) {
+make_header_other_string <- function(other_sbatch_options, job_scheduler) {
     if (length(other_sbatch_options) == 1 && other_sbatch_options == "") {
         sbatch_string <- ""
     } else {
-        sbatch_string <-
-            paste("#SBATCH", other_sbatch_options, collapse = "\n")
+        if (job_scheduler == "slurm") {
+            sbatch_string <-
+                paste("#SBATCH", other_sbatch_options, collapse = "\n")
+        } else if (job_scheduler == "sge") {
+            sbatch_string <-
+                paste("#$", other_sbatch_options, collapse = "\n")
+        }
     }
 
     return(sbatch_string)

@@ -163,7 +163,7 @@ get_snp_tree <- function(cellid_bam_table,
                     )
                 ),
                 submit = submit,
-                log_base = paste0(log_base, "_merge-%j.out"),
+                log_base = log_base,
                 job_base = job_base,
                 account = account,
                 temp_dir = temp_dir,
@@ -269,7 +269,8 @@ call_snps <- function(cellid_bam_table,
         stop("Bam file does not exist: ", bam_to_use)
     }
 
-    job_header_other <- make_sbatch_other_string(other_job_header_options)
+    job_header_other <-
+        make_header_other_string(other_job_header_options, job_scheduler)
 
     # write out the cell ids to files with two columns: cell_id, cell_group
     return_values <-
@@ -370,8 +371,8 @@ call_snps <- function(cellid_bam_table,
 #'  placeholder_ploidy
 #'
 #' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
-#' species reference with species prefixes on chromosomes, mm10_hg38 is our
-#' mixed reference from 10x, mm10 is mm10
+#' species reference with species prefixes on chromosomes, mm10_hg19 or
+#' mm10_hg38 is our mixed reference from 10x, mm10 is mm10
 #'
 #' @noRd
 pick_ploidy <- function(ploidy) {
@@ -426,7 +427,8 @@ merge_bcfs <- function(bcf_in_dir,
                        sge_q,
                        sge_parallel_environment,
                        job_scheduler = "slurm") {
-    job_header_other <- make_sbatch_other_string(other_job_header_options)
+    job_header_other <-
+        make_header_other_string(other_job_header_options, job_scheduler)
 
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
@@ -522,7 +524,8 @@ group_clusters_by_dist <- function(
     verbose_setting <-
         dplyr::if_else(verbose, "--verbose", "")
 
-    job_header_other <- make_sbatch_other_string(other_job_header_options)
+    job_header_other <-
+        make_header_other_string(other_job_header_options, job_scheduler)
 
     replace_tibble_dist <-
         dplyr::tribble(
@@ -531,7 +534,7 @@ group_clusters_by_dist <- function(
             "placeholder_job_log",              paste0(
                                                     temp_dir, "/",
                                                     log_base,
-                                                    "dist_-%j.out"
+                                                    "dist-%j.out"
                                                 ),
             "placeholder_sge_q",            sge_q,
             "placeholder_sge_thread",       sge_parallel_environment,

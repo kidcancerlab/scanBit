@@ -23,6 +23,9 @@ library(tidyverse)
 ## Using SNPs to define tumor clusters
 
 ### Prep the input data
+I'm reading in a pre-made Seurat object with two merged samples in it.
+
+You don't necessarily need to assign cell types, but I'm going to use it downstream so I'm doing it here.
 ```{r read_data, eval=FALSE}
 # This is a Seurat object with two patient osteosarcoma mets from one patient
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
@@ -140,7 +143,7 @@ snp_tree <-
             'eval "$(conda shell.bash hook)"',
             "echo Doing stuff!"
         ),
-        submit = FALSE
+        submit = TRUE
     )
 
 end_time <- Sys.time()
@@ -148,19 +151,25 @@ total_time <- end_time - start_time
 total_time
 ```
 
-
 ## Using SGE as a job scheduler
 For SGE, the code automatically adds the following header elements:
 
-!!!
-figure this out
-!!!
+-cwd
+-j y
+-o
+-l mem_free
+-q
+-pe
+-N
+-sync y
 
-If you're using sge, you also need to specify the `--sge_q` and `--sge_pe` options. The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is the parallel environment you want to use. This is the value you would put where the word "threaded" is in the example below.
+If you're using sge, you also need to specify the `--sge_q` and `--sge_pe` options.
 
-`#$ -pe thread 30`
+The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is the parallel environment you want to use. This is the value you would put where the word "smp" is in the example below.
 
-So in in this example, you would add --sge_pe = "thread".
+`#$ -pe smp 30`
+
+So in in this example, you would add --sge_pe = "smp".
 
 ```{r sge}
 snp_tree <-
@@ -177,18 +186,17 @@ snp_tree <-
         max_prop_missing_at_site = 0.75,
         cleanup = FALSE,
         other_job_header_options = c(
-            "-l h_rt=08:00:00",
-            "-m b,e",
+            "-m be",
             "-M fake_email@not_a_real_domain.org"
         ),
         other_batch_options = c( # Just here as examples of things you might put
-            "ml purge",
-            "ml miniforge3",
+            "module purge",
+            "module load miniforge3",
             'eval "$(conda shell.bash hook)"',
             "echo Doing stuff!"
         ),
         sge_q = "all.q",
-        sge_parallel_environment = "thread",
+        sge_parallel_environment = "smp",
         job_scheduler = "sge",
         submit = FALSE # This is just here so I can test things
     )

@@ -36,8 +36,14 @@
 #'   optional strings will not be part of the header and will be placed verbatim
 #'   after the header. This is useful for passing module load commands, adding
 #'   to the path or other system-specific commands. Should be a list of strings.
+#' @param sge_q Character string specifying the cluster queue when using sge as
+#'   the job scheduler.
+#' @param sge_parallel_environment Character string specifying the parallel
+#'   environment (part of the -pe argument in the header) when using sge as the
+#'   job scheduler
 #' @param job_scheduler The job scheduler to use. One of "slurm", "sge" or
-#'   "bash".
+#'   "bash". If specifying "sge", sge_q and sge_parallel should be specified if
+#'   defaults are not correct.
 #'
 #' @details for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
 #'   our mixed species reference with species prefixes on chromosomes, mm10 is
@@ -69,6 +75,8 @@ get_snp_tree <- function(cellid_bam_table,
                          cleanup = TRUE,
                          other_job_header_options  = "",
                          other_batch_options = "",
+                         sge_q = "all.q",
+                         sge_parallel_environment = "thread",
                          job_scheduler = "slurm") {
     check_cellid_bam_table(cellid_bam_table)
 
@@ -120,6 +128,8 @@ get_snp_tree <- function(cellid_bam_table,
                 cleanup = cleanup,
                 other_job_header_options = other_job_header_options,
                 other_batch_options = other_batch_options,
+                sge_q = sge_q,
+                sge_parallel_environment = sge_parallel_environment,
                 job_scheduler = job_scheduler
             )
         })
@@ -160,6 +170,8 @@ get_snp_tree <- function(cellid_bam_table,
                 cleanup = cleanup,
                 other_job_header_options = other_job_header_options,
                 other_batch_options = other_batch_options,
+                sge_q = sge_q,
+                sge_parallel_environment = sge_parallel_environment,
                 job_scheduler = job_scheduler
             )
     })
@@ -215,6 +227,8 @@ get_snp_tree <- function(cellid_bam_table,
                 submit = submit,
                 other_job_header_options = other_job_header_options,
                 other_batch_options = other_batch_options,
+                sge_q = sge_q,
+                sge_parallel_environment = sge_parallel_environment,
                 job_scheduler = job_scheduler
             )
     })
@@ -248,6 +262,8 @@ call_snps <- function(cellid_bam_table,
                       cleanup = TRUE,
                       other_job_header_options = "",
                       other_batch_options = "",
+                      sge_q,
+                      sge_parallel_environment,
                       job_scheduler = "slurm") {
     if (!file.exists(bam_to_use)) {
         stop("Bam file does not exist: ", bam_to_use)
@@ -308,6 +324,8 @@ call_snps <- function(cellid_bam_table,
                                                         "_mpileup-%j.out"
                                                     )
                                                 ),
+                "placeholder_sge_q",            sge_q,
+                "placeholder_sge_thread",       sge_parallel_environment,
                 "placeholder_job_header_other", job_header_other,
                 "placeholder_batch_other",      paste0(
                                                     other_batch_options,
@@ -405,6 +423,8 @@ merge_bcfs <- function(bcf_in_dir,
                        cleanup = TRUE,
                        other_job_header_options = "",
                        other_batch_options = "",
+                       sge_q,
+                       sge_parallel_environment,
                        job_scheduler = "slurm") {
     job_header_other <- make_sbatch_other_string(other_job_header_options)
 
@@ -421,6 +441,8 @@ merge_bcfs <- function(bcf_in_dir,
                                                     "_merge-%j.out"
                                                 )
                                             ),
+            "placeholder_sge_q",            sge_q,
+            "placeholder_sge_thread",       sge_parallel_environment,
             "placeholder_job_header_other", job_header_other,
             "placeholder_batch_other",      paste0(
                                                 other_batch_options,
@@ -490,6 +512,8 @@ group_clusters_by_dist <- function(
     submit = TRUE,
     other_job_header_options = "",
     other_batch_options = "",
+    sge_q,
+    sge_parallel_environment,
     job_scheduler = "slurm") {
     py_file <-
         paste0(find.package("scanBit"),
@@ -509,6 +533,8 @@ group_clusters_by_dist <- function(
                                                     log_base,
                                                     "dist_-%j.out"
                                                 ),
+            "placeholder_sge_q",            sge_q,
+            "placeholder_sge_thread",       sge_parallel_environment,
             "placeholder_job_header_other",     job_header_other,
             "placeholder_batch_other",          paste0(
                                                     other_batch_options,

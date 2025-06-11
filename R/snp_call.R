@@ -251,12 +251,12 @@ get_snp_tree <- function(cellid_bam_table,
 call_snps <- function(cellid_bam_table,
                       bam_to_use,
                       bcf_dir,
-                      log_base = file.path(getwd(), "jobOut_call-%j.txt"),
-                      job_base = "sbatch_",
-                      account = "gdrobertslab",
+                      log_base,
+                      job_base,
+                      account,
                       ploidy,
                       ref_fasta,
-                      min_depth = 5,
+                      min_depth,
                       temp_dir,
                       submit = TRUE,
                       cleanup = TRUE,
@@ -322,7 +322,9 @@ call_snps <- function(cellid_bam_table,
                                                     temp_dir,
                                                     paste0(
                                                         log_base,
-                                                        "_mpileup-%j.out"
+                                                        "_mpileup-",
+                                                        get_job_id_str(job_scheduler),
+                                                        ".out"
                                                     )
                                                 ),
                 "placeholder_sge_q",            sge_q,
@@ -440,7 +442,9 @@ merge_bcfs <- function(bcf_in_dir,
                                                 temp_dir,
                                                 paste0(
                                                     log_base,
-                                                    "_merge-%j.out"
+                                                    "_merge-",
+                                                    get_job_id_str(job_scheduler),
+                                                    ".out"
                                                 )
                                             ),
             "placeholder_sge_q",            sge_q,
@@ -534,7 +538,9 @@ group_clusters_by_dist <- function(
             "placeholder_job_log",              paste0(
                                                     temp_dir, "/",
                                                     log_base,
-                                                    "dist-%j.out"
+                                                    "dist-",
+                                                    get_job_id_str(job_scheduler),
+                                                    ".out"
                                                 ),
             "placeholder_sge_q",            sge_q,
             "placeholder_sge_thread",       sge_parallel_environment,

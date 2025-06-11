@@ -1,20 +1,73 @@
-utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
-                         "pct.exp", "score", "x", "y", "p_val_adj",
-                         "avg_log2FC", "gene", "Freq", "Var1", "cid",
-                         "col.fill", "freq", "label", "label14", "label30",
-                         "lt_14", "lt_30", "database", "from", "to", "pearson",
-                         "test_ligand", "ligand_target_matrix", "ligands",
-                         "ligands_bona_fide", "lr_network", "lr_network_strict",
-                         "receptors", "receptors_bona_fide", "value",
-                         "weighted_networks", "weighted_networks_lr", "Phase",
-                         "Cluster", "Proportion", "weight", "cluster",
-                         "sil_width", "sil_vals", "res_vals", "num_clusters",
-                         "min_val", "max_val", "median_val", "sd_val",
-                         "feature", "Sample_ID", "exp_type", "suffix", "fastqs",
-                         "library_type", "link_folder", "tx_id", "tar_folder",
-                         "CB", "bam_file", "cell_barcode", "cell_group",
-                         "tree_group", "sample_1", "sample_2", "group_count",
-                         "n_bams", "snp_dist"))
+utils::globalVariables(c(
+    ".",
+    "avg.exp.scaled",
+    "features.plot",
+    "id",
+    "pct.exp",
+    "score",
+    "x",
+    "y",
+    "p_val_adj",
+    "avg_log2FC",
+    "gene",
+    "Freq",
+    "Var1",
+    "cid",
+    "col.fill",
+    "freq",
+    "label",
+    "label14",
+    "label30",
+    "lt_14",
+    "lt_30",
+    "database",
+    "from",
+    "to",
+    "pearson",
+    "test_ligand",
+    "ligand_target_matrix",
+    "ligands",
+    "ligands_bona_fide",
+    "lr_network",
+    "lr_network_strict",
+    "receptors",
+    "receptors_bona_fide",
+    "value",
+    "weighted_networks",
+    "weighted_networks_lr",
+    "Phase",
+    "Cluster",
+    "Proportion",
+    "weight",
+    "cluster",
+    "sil_width",
+    "sil_vals",
+    "res_vals",
+    "num_clusters",
+    "min_val",
+    "max_val",
+    "median_val",
+    "sd_val",
+    "feature",
+    "Sample_ID",
+    "exp_type",
+    "suffix",
+    "fastqs",
+    "library_type",
+    "link_folder",
+    "tx_id",
+    "tar_folder",
+    "CB",
+    "bam_file",
+    "cell_barcode",
+    "cell_group",
+    "tree_group",
+    "sample_1",
+    "sample_2",
+    "group_count",
+    "n_bams",
+    "snp_dist"
+))
 
 #' Use a job template to submit a job to the cluster
 #'
@@ -33,14 +86,16 @@ utils::globalVariables(c(".", "avg.exp.scaled", "features.plot", "id",
 #'
 #' @return 0 if the job submission was successful, otherwise an error is
 #'  thrown
-use_job_template <- function(replace_tibble,
-                             template,
-                             file_dir = tempdir(),
-                             temp_ext = ".sh",
-                             temp_prefix = "job_",
-                             warning_label = "",
-                             submit = TRUE,
-                             job_scheduler = "slurm") {
+use_job_template <- function(
+    replace_tibble,
+    template,
+    file_dir = tempdir(),
+    temp_ext = ".sh",
+    temp_prefix = "job_",
+    warning_label = "",
+    submit = TRUE,
+    job_scheduler = "slurm"
+) {
     job_template <-
         readr::read_file(
             file.path(
@@ -64,9 +119,7 @@ use_job_template <- function(replace_tibble,
     }
 
     temp_file <-
-        tempfile(fileext = temp_ext,
-                 tmpdir = file_dir,
-                 pattern = temp_prefix)
+        tempfile(fileext = temp_ext, tmpdir = file_dir, pattern = temp_prefix)
 
     readr::write_file(job_template, file = temp_file)
 
@@ -77,9 +130,11 @@ use_job_template <- function(replace_tibble,
     }
 
     if (return_val != 0) {
-        stop(paste0(warning_label,
-                    " job submission failed. Error code ",
-                    return_val))
+        stop(paste0(
+            warning_label,
+            " job submission failed. Error code ",
+            return_val
+        ))
     }
     return(0)
 }
@@ -102,9 +157,11 @@ get_submit_cmd <- function(job_scheduler) {
 #' @return 0 if the command is available, otherwise an error is thrown
 check_cmd <- function(cmd) {
     if (Sys.which(cmd) == "") {
-        stop(paste(cmd,
-                   "command not found, do you need to load a module or add",
-                   "this to your PATH?"))
+        stop(paste(
+            cmd,
+            "command not found, do you need to load a module or add",
+            "this to your PATH?"
+        ))
     }
     return(0)
 }
@@ -138,4 +195,30 @@ make_header_other_string <- function(other_sbatch_options, job_scheduler) {
     }
 
     return(sbatch_string)
+}
+
+#' Get Job ID String for Job Scheduler
+#'
+#' Returns the appropriate job ID string placeholder for the specified job
+#' scheduler.
+#'
+#' @param job_scheduler Character string specifying the job scheduler.
+#'        Must be one of \code{"slurm"}, \code{"sge"}, or \code{"bash"}.
+#'
+#' @return A character string representing the job ID placeholder for the given
+#' scheduler:
+#'
+#' @noRd
+get_job_id_str <- function(job_scheduler) {
+    if (job_scheduler == "slurm") {
+        return("%j")
+    } else if (job_scheduler == "sge") {
+        return("$JOB_ID")
+    } else if (job_scheduler == "bash") {
+        return("")
+    } else {
+        stop("job_scheduler must be one of slurm, sge or bash")
+    }
+
+    return()
 }

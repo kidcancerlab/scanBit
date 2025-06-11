@@ -3,10 +3,10 @@
 #$ -j y                                 # Error logging to single file
 #$ -o placeholder_job_log
 #$ -l mem_free=5G
-#$ -q placeholder_sge_q                 # this needs to be user specified
-#$ -pe placeholder_sge_thread 5         # this needs to be user specified
+#$ -q placeholder_sge_q
+#$ -pe placeholder_sge_thread 5
 #$ -N placeholder_job_name
-#$ -sync y                              # Wait for finish to continue
+#$ -sync y
 #$ -t 0-placeholder_array_max
 placeholder_job_header_other
 

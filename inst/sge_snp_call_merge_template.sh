@@ -1,12 +1,12 @@
 #!/bin/bash
 #$ -cwd
-#$ -j y
+#$ -j y                                 # Error logging to single file
 #$ -o placeholder_job_log
 #$ -l mem_free=10G
 #$ -q placeholder_sge_q                 # this needs to be user specified
-#$ -pe thread 4             # this needs to be user specified
+#$ -pe placeholder_sge_thread 4         # this needs to be user specified
 #$ -N placeholder_job_name
-#$ -sync y                  # Wait for finish to continue
+#$ -sync y                              # Wait for finish to continue
 placeholder_job_header_other
 
 placeholder_batch_other
@@ -37,6 +37,6 @@ end_time=$(date +%s)
 elapsed_seconds=$((end_time - start_time))
 
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
-echo Elapsed: $(printf "%(%H:%M:%S)T" "$elapsed_seconds")
+echo Elapsed seconds: $elapsed_seconds
 
 conda deactivate

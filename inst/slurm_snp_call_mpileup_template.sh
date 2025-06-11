@@ -81,6 +81,6 @@ end_time=$(date +%s)
 elapsed_seconds=$((end_time - start_time))
 
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
-echo Elapsed: $(printf "%(%H:%M:%S)T" "$elapsed_seconds")
+echo Elapsed seconds: $elapsed_seconds
 
 conda deactivate

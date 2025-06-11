@@ -13,7 +13,9 @@ placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
-echo ${HOSTNAME}
+start_time=$(date +%s)
+
+echo ${HOSTNAME} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
 conda activate scanBit_xkcd_1337
 
@@ -29,3 +31,12 @@ bcftools merge \
 bcftools index \
     --threads 4 \
     placeholder_bcf_out
+
+end_time=$(date +%s)
+
+elapsed_seconds=$((end_time - start_time))
+
+echo Done: $(date '+%Y-%m-%d %H:%M:%S')
+echo Elapsed seconds: $elapsed_seconds
+
+conda deactivate

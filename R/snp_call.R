@@ -309,8 +309,13 @@ call_snps <- function(cellid_bam_table,
     # Due to this, we need to append the min_depth used to the output bcf folder
     # Since this is just submitting slurm jobs, we don't need to worry about
     # how many cores we use
+    if (job_scheduler == "bash") {
+        n_cores <- 1
+    } else {
+        n_cores <- 100
+    }
     parallel::mclapply(min_depth,
-                       mc.cores = 100,
+                       mc.cores = n_cores,
                        mc.preschedule = FALSE,
                        function(this_min_depth) {
 

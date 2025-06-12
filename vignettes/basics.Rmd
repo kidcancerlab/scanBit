@@ -202,6 +202,34 @@ snp_tree <-
     )
 ```
 
+
+## Run using no job scheduler, just bash scripts
+```{r bash}
+snp_tree <-
+    get_snp_tree(
+        cellid_bam_table = cell_barcode_table,
+        temp_dir = "output/temp",
+        ploidy = "GRCh37",
+        output_dir = "output",
+        output_base_name = "test_two_sobj",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        min_depth = c(5, 10, 20),
+        job_base = "two_sobj",
+        min_snvs_per_cluster = 250,
+        max_prop_missing_at_site = 0.75,
+        cleanup = FALSE,
+        other_batch_options = c( # Just here as examples of things you might put
+            "module purge",
+            "module load miniforge3",
+            'eval "$(conda shell.bash hook)"',
+            "echo Doing stuff!"
+        ),
+        job_scheduler = "bash",
+        submit = TRUE
+    )
+```
+
+
 ## Adding the results back into your Seurat object and plotting them
 ```{r plotting, eval = FALSE}
 # Pngs of trees and text output are in the "output/" directory

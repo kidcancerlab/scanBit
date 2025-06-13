@@ -13,3 +13,4 @@ tempDir
 src/rust/target
 src/.cargo
 output
+exec/__pycache__

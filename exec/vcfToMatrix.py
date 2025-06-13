@@ -10,55 +10,6 @@ import matplotlib.pyplot as plt
 import multiprocessing
 from itertools import repeat, chain
 
-parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--bcf',
-                    type = str,
-                    default=  '/home/gdrobertslab/mvc002/analyses/roberts/24_Osteo_atlas/output/id_tumor/snvs/mouse_S0169/mergedS0169_c5.bcf',
-                    help = 'BCF file with multiple samples as columns')
-parser.add_argument('--figure_file',
-                    '-o',
-                    type = str,
-                    default = 'dendrogram.pdf',
-                    help = 'output file name of plot. Id suggest either png or pdf')
-parser.add_argument('--min_snvs_for_cluster',
-                    type = int,
-                    default = 1000,
-                    help = 'minimum number of SNVs for a cluster to be included')
-parser.add_argument('--max_prop_missing',
-                    type = float,
-                    default = 0.9,
-                    help = 'max proportion of missing data allowed at a single locus')
-parser.add_argument('--n_bootstrap',
-                    type = int,
-                    default = 1000,
-                    help = 'number of bootstrap samples to use')
-parser.add_argument('--bootstrap_threshold',
-                    type = float,
-                    default = 0.99,
-                    help = 'threshold for collapsing clusters')
-parser.add_argument('--verbose',
-                    action = 'store_true',
-                    help = 'print out extra information')
-parser.add_argument('--processes',
-                    '-p',
-                    type = int,
-                    default = 1,
-                    help = 'number of processes to use for parallel processing')
-parser.add_argument('--fig_width',
-                    type = float,
-                    default = 6,
-                    help = 'width of the figure in inches')
-parser.add_argument('--fig_height',
-                    type = float,
-                    default = 6,
-                    help = 'height of the figure in inches')
-parser.add_argument('--fig_dpi',
-                    type = int,
-                    default = 300,
-                    help = 'dpi of the figure')
-
-args = parser.parse_args()
-
 ################################################################################
 ### Code
 
@@ -462,4 +413,53 @@ def print_cluster_names(collapsed_clusters, top_lvl_clusters):
 ### main
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--bcf',
+                        type = str,
+                        default=  '/home/gdrobertslab/mvc002/analyses/roberts/24_Osteo_atlas/output/id_tumor/snvs/mouse_S0169/mergedS0169_c5.bcf',
+                        help = 'BCF file with multiple samples as columns')
+    parser.add_argument('--figure_file',
+                        '-o',
+                        type = str,
+                        default = 'dendrogram.pdf',
+                        help = 'output file name of plot. Id suggest either png or pdf')
+    parser.add_argument('--min_snvs_for_cluster',
+                        type = int,
+                        default = 1000,
+                        help = 'minimum number of SNVs for a cluster to be included')
+    parser.add_argument('--max_prop_missing',
+                        type = float,
+                        default = 0.9,
+                        help = 'max proportion of missing data allowed at a single locus')
+    parser.add_argument('--n_bootstrap',
+                        type = int,
+                        default = 1000,
+                        help = 'number of bootstrap samples to use')
+    parser.add_argument('--bootstrap_threshold',
+                        type = float,
+                        default = 0.99,
+                        help = 'threshold for collapsing clusters')
+    parser.add_argument('--verbose',
+                        action = 'store_true',
+                        help = 'print out extra information')
+    parser.add_argument('--processes',
+                        '-p',
+                        type = int,
+                        default = 1,
+                        help = 'number of processes to use for parallel processing')
+    parser.add_argument('--fig_width',
+                        type = float,
+                        default = 6,
+                        help = 'width of the figure in inches')
+    parser.add_argument('--fig_height',
+                        type = float,
+                        default = 6,
+                        help = 'height of the figure in inches')
+    parser.add_argument('--fig_dpi',
+                        type = int,
+                        default = 300,
+                        help = 'dpi of the figure')
+
+    args = parser.parse_args()
+
     main()

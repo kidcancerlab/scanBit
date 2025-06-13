@@ -9,8 +9,8 @@ get_snp_tree(
   temp_dir = tempfile(pattern = "tempdir"),
   output_dir,
   output_base_name = "hier_tree",
-  slurm_base = "/slurmOut",
-  sbatch_base = "sbatch_",
+  log_base = "jobOut",
+  job_base = "sbatch_",
   account = "gdrobertslab",
   ploidy,
   ref_fasta,
@@ -22,7 +22,11 @@ get_snp_tree(
   verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE,
-  other_sbatch_options = ""
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q = "all.q",
+  sge_parallel_environment = "thread",
+  job_scheduler = "slurm"
 )
 }
 \arguments{
@@ -38,9 +42,9 @@ unique to each sample run to avoid file collisions.}
 
 \item{output_base_name}{The prefix to use with the output files.}
 
-\item{slurm_base}{The directory to write slurm output files to.}
+\item{log_base}{The directory to write job output files to.}
 
-\item{sbatch_base}{The prefix to use with the sbatch job file.}
+\item{job_base}{The prefix to use with the sbatch job file.}
 
 \item{account}{The hpc account to use.}
 
@@ -73,9 +77,25 @@ be considered a valid grouping.}
 
 \item{cleanup}{Whether to clean up the temporary files after execution.}
 
-\item{other_sbatch_options}{Other options to pass to the sbatch command. This
-should be a list of strings. Do not put "#SBATCH" in front of the
-strings.}
+\item{other_job_header_options}{Other options to pass to the batch job
+header. This should be a list of strings. Do not put "#SBATCH" or "#$" in
+front of the strings.}
+
+\item{other_batch_options}{Other options to pass to the batch job. These
+optional strings will not be part of the header and will be placed verbatim
+after the header. This is useful for passing module load commands, adding
+to the path or other system-specific commands. Should be a list of strings.}
+
+\item{sge_q}{Character string specifying the cluster queue when using sge as
+the job scheduler.}
+
+\item{sge_parallel_environment}{Character string specifying the parallel
+environment (part of the -pe argument in the header) when using sge as the
+job scheduler}
+
+\item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
+"bash". If specifying "sge", sge_q and sge_parallel should be specified if
+defaults are not correct.}
 }
 \value{
 TRUE if the function succeeded. Output is written to output_dir.

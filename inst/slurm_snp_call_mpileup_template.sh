@@ -1,25 +1,24 @@
 #!/bin/sh
-#SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out
-#SBATCH --error=placeholder_slurm_out
+#SBATCH --output=placeholder_job_log
+#SBATCH --error=placeholder_job_log
 #SBATCH --job-name=snp_call
 #SBATCH --array=0-placeholder_array_max
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=5
 #SBATCH --mem=2G
-#SBATCH --partition=himem,general
 #SBATCH --wait
-placeholder_sbatch_other
+placeholder_job_header_other
+
+placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
-ml purge
-
-eval "$(conda shell.bash hook)"
 conda activate scanBit_xkcd_1337
 
-echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
+start_time=$(date +%s)
+
+echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
 cell_file_array=(placeholder_cell_files)
 cell_file=${cell_file_array[$SLURM_ARRAY_TASK_ID]}
@@ -76,3 +75,12 @@ samtools view \
 bcftools index \
     --threads 5 \
     placeholder_bcf_dir/${label}.bcf
+
+end_time=$(date +%s)
+
+elapsed_seconds=$((end_time - start_time))
+
+echo Done: $(date '+%Y-%m-%d %H:%M:%S')
+echo Elapsed seconds: $elapsed_seconds
+
+conda deactivate

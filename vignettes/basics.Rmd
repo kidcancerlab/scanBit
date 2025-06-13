@@ -21,7 +21,13 @@ library(tidyverse)
 ```
 
 ## Using SNPs to define tumor clusters
-```{r eval=FALSE}
+
+### Prep the input data
+I'm reading in a pre-made Seurat object with two merged samples in it.
+
+You don't necessarily need to assign cell types, but I'm going to use it downstream so I'm doing it here.
+```{r read_data, eval=FALSE}
+# This is a Seurat object with two patient osteosarcoma mets from one patient
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
 
 # Do cell type annotation so I can use macrophages and monocytes as known normal cells
@@ -45,8 +51,18 @@ two_sobj$cell_type <-
 two_sobj$cell_score <-
     cell_assign$scores %>%
     apply(MARGIN = 1, function(x) max(x, na.rm = TRUE))
+```
 
-c_b_t <-
+### Prepare input for scanBit
+This table has three columns, `cell_barcode`, `bam_file`, and `cell_group`.
+
+The `cell_barcode` column should contain the cell barcodes from the Seurat object. It is critical that the cell barcodes match the barcodes that will be found in the bam file. This means that if you appended/prepended sample labels to the barcodes in your Seurat object, you need to strip those off.
+
+The `bam_file` column should contain the absolute path to the BAM file for each cell.
+
+The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful.
+```{r eval=FALSE}
+cell_barcode_table <-
     two_sobj@meta.data %>%
     select(used_clusters) %>%
     dplyr::rename(cell_group = used_clusters) %>%
@@ -56,50 +72,183 @@ c_b_t <-
                              str_remove(cell_barcode, "_.*"),
                              "/outs/possorted_genome_bam.bam"),
            cell_barcode = str_remove(cell_barcode, ".+_"))
+```
 
+### Run scanBit
+This R command creates and runs batch jobs as part of the analysis. This is done either using a job scheduler such as slurm or SGE, or using bash shell scripts. If you want to look at these scripts, they are saved in the temporary folder (temp_folder argument). If submitting to slurm or SGE, the logs are saved there as well.
+
+The tricky bit about running this is going to be making sure that your options for other_job_heading_options and other_batch_options are correct for your system if you are using a job scheduler on a HPC.
+
+For other_job_header_options, this is a vector of options as strings that will be passed to the job header. This is either sbatch, qsub header elements. The code will automatically prepend either #SBATCH or #$ to the argument as appropriate.
+
+For slurm, the code automatically adds the following header elements:
+
+--output
+--error
+--job-name
+--nodes
+--ntasks
+--cpus-per-task
+--mem
+--wait
+
+If you need additional options in your job header, add them to the other_job_header_options vector.
+
+If you are in a HPC environment and you need to specify other options for a batch job that are outside of the job header, you can add them to the other_batch_options list. This is typically used for loading modules or changing how conda works, but you can put anything that is required in this vector. These commands will be run at the top of the batch job.
+
+If you want to test everything out, try running get_snp_tree with temp_dir set to an easy to access directory and change the submit argument to FALSE. This will generate the batch job scripts, but not submit them. Then you can look at the scripts to see if they look correct. You can also run the scripts manually to see if they work to check what options you may need to add.
+
+### The ploidy argument
+This takes either:
+- A character string that will be passed to bcftools call. See bcftools call --ploidy ?. Options are
+    - "GRCh37" is hg19
+    - "GRCh38" is hg38
+    - "X" is something I don't think anyone will use
+    - "Y" also don't think anyone will ever use
+    - "1" if everything is haploid
+    - "2" if everything is diploid (all chromosomes, so no sex chroms and MT)
+- "mm10"
+    - this tells bcftools to use the ploidy file included with the package
+- "mm10_hg19" or "mm10_hg38"
+    This is mostly for use in our lab as it points to included ploidy files for our custom mixed species references
+- The path to a custom ploidy file
+    - See https://samtools.github.io/bcftools/bcftools.html#call for how to construct this
+
+
+```{r eval=FALSE}
 start_time <- Sys.time()
 
 snp_tree <-
     get_snp_tree(
-        cellid_bam_table = c_b_t,
+        cellid_bam_table = cell_barcode_table,
         temp_dir = "output/temp",
         ploidy = "GRCh37",
         output_dir = "output",
         output_base_name = "test_two_sobj",
         ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
         min_depth = c(5, 10, 20),
-        sbatch_base = "two_sobj",
+        job_base = "two_sobj",
         min_snvs_per_cluster = 500,
         max_prop_missing_at_site = 0.9,
         cleanup = FALSE,
-        other_sbatch_options = c(
+        other_job_header_options = c(
             "--time=8:00:00",
             "--mail-type=ALL",
-            "--mail-user=matthew.cannon@nationwidechildrens.org"
-        )
+            "--mail-user=fake_email@not_a_real_domain.org",
+            "--partition=himem,general"
+        ),
+        other_batch_options = c( # Just here as examples of things you might put
+            "ml purge",
+            "ml miniforge3",
+            'eval "$(conda shell.bash hook)"',
+            "echo Doing stuff!"
+        ),
+        submit = TRUE
     )
 
 end_time <- Sys.time()
 total_time <- end_time - start_time
 total_time
+```
 
-# Pngs of trees and text output is in output/ directory
+## Using SGE as a job scheduler
+For SGE, the code automatically adds the following header elements:
+
+-cwd
+-j y
+-o
+-l mem_free
+-q
+-pe
+-N
+-sync y
+
+If you're using sge, you also need to specify the `--sge_q` and `--sge_pe` options.
+
+The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is the parallel environment you want to use. This is the value you would put where the word "smp" is in the example below.
+
+`#$ -pe smp 30`
+
+So in in this example, you would add --sge_pe = "smp".
+
+```{r sge}
+snp_tree <-
+    get_snp_tree(
+        cellid_bam_table = cell_barcode_table,
+        temp_dir = "output/temp",
+        ploidy = "GRCh37",
+        output_dir = "output",
+        output_base_name = "test_two_sobj",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        min_depth = c(5, 10, 20),
+        job_base = "two_sobj",
+        min_snvs_per_cluster = 250,
+        max_prop_missing_at_site = 0.75,
+        cleanup = FALSE,
+        other_job_header_options = c(
+            "-m be",
+            "-M fake_email@not_a_real_domain.org"
+        ),
+        other_batch_options = c( # Just here as examples of things you might put
+            "module purge",
+            "module load miniforge3",
+            'eval "$(conda shell.bash hook)"',
+            "echo Doing stuff!"
+        ),
+        sge_q = "all.q",
+        sge_parallel_environment = "smp",
+        job_scheduler = "sge",
+        submit = FALSE # This is just here so I can test things
+    )
+```
+
+
+## Run using no job scheduler, just bash scripts
+```{r bash}
+snp_tree <-
+    get_snp_tree(
+        cellid_bam_table = cell_barcode_table,
+        temp_dir = "output/temp",
+        ploidy = "GRCh37",
+        output_dir = "output",
+        output_base_name = "test_two_sobj",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        min_depth = c(5, 10, 20),
+        job_base = "two_sobj",
+        min_snvs_per_cluster = 250,
+        max_prop_missing_at_site = 0.75,
+        cleanup = FALSE,
+        other_batch_options = c( # Just here as examples of things you might put
+            "module purge",
+            "module load miniforge3",
+            'eval "$(conda shell.bash hook)"',
+            "echo Doing stuff!"
+        ),
+        job_scheduler = "bash",
+        submit = TRUE
+    )
+```
+
+
+## Adding the results back into your Seurat object and plotting them
+```{r plotting, eval = FALSE}
+# Pngs of trees and text output are in the "output/" directory
 
 # Add snv groups to the Seurat object
 two_sobj <-
     add_snv_group_to_sobj(
         two_sobj,
-        snv_group_file = "output/test_two_sobj_5_dist.txt",
+        snv_group_file = "output/test_two_sobj_5_groups.txt",
         new_columns = c("snv_group_5", "snv_top_lvl_group_5"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
-        "output/test_two_sobj_10_dist.txt",
+        snv_group_file = "output/test_two_sobj_10_groups.txt",
         new_columns = c("snv_group_10", "snv_top_lvl_group_10"),
         cell_group = "used_clusters"
     ) %>%
     add_snv_group_to_sobj(
-        "output/test_two_sobj_20_dist.txt",
+        snv_group_file = "output/test_two_sobj_20_groups.txt",
         new_columns = c("snv_group_20", "snv_top_lvl_group_20"),
         cell_group = "used_clusters"
     )

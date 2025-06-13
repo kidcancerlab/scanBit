@@ -1,24 +1,22 @@
 #!/bin/sh
-#SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out
-#SBATCH --error=placeholder_slurm_out
+#SBATCH --output=placeholder_job_log
+#SBATCH --error=placeholder_job_log
 #SBATCH --job-name scanBit_dist
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
-#SBATCH --mem=10G
-#SBATCH --partition=himem,general
+##SBATCH --mem=10G # Figure this out later
 #SBATCH --wait
-placeholder_sbatch_other
+placeholder_job_header_other
+
+placeholder_batch_other
 
 set -e ### stops bash script if line ends with error
 
-echo ${HOSTNAME} ${SLURM_ARRAY_TASK_ID}
+start_time=$(date +%s)
 
-ml purge
-ml load miniforge3/24.3.0
+echo ${HOSTNAME} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
-eval "$(conda shell.bash hook)"
 conda activate scanBit_xkcd_1337
 
 python \
@@ -31,3 +29,12 @@ python \
         --bootstrap_threshold placeholder_bootstrap_threshold \
         --figure_file placeholder_fig_file placeholder_verbose \
     > placeholder_groups_output
+
+end_time=$(date +%s)
+
+elapsed_seconds=$((end_time - start_time))
+
+echo Done: $(date '+%Y-%m-%d %H:%M:%S')
+echo Elapsed seconds: $elapsed_seconds
+
+conda deactivate

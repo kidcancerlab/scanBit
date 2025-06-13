@@ -22,7 +22,7 @@
 #' \dontrun{
 #' sobj <- add_snv_group_to_sobj(
 #'     sobject = seurat_object,
-#'     snv_group_file = "path/to/snv_group_file_5_dist.txt",
+#'     snv_group_file = "path/to/snv_group_file_5_groups.txt",
 #'     new_column = "snv_group_5"
 #' )
 #' }

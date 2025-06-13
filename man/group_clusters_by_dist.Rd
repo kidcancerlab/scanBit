@@ -6,26 +6,30 @@
 \usage{
 group_clusters_by_dist(
   merged_bcf_file,
-  output_file = paste0(merged_bcf_file, "_dist.txt"),
+  output_file = paste0(merged_bcf_file, "_groups.txt"),
   min_snvs_per_cluster = 500,
   max_prop_missing_at_site = 0.9,
   n_bootstraps = 1000,
   bootstrap_cutoff = 0.99,
   tree_figure_file,
   verbose = TRUE,
-  sbatch_base = "sbatch_dist",
+  job_base = "job_dist",
   account = "gdrobertslab",
-  slurm_base = "slurmOut",
+  log_base = "jobOut",
   temp_dir = tempdir(),
   submit = TRUE,
-  other_sbatch_options = ""
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler = "slurm"
 )
 }
 \arguments{
 \item{merged_bcf_file}{Character. Path to the merged BCF file.}
 
 \item{output_file}{Character. Path to the output file for assigned groupings
-per sample (cluster). Default is merged_bcf_file + "_dist.txt".}
+per sample (cluster). Default is merged_bcf_file + "_groups.txt".}
 
 \item{min_snvs_per_cluster}{Numeric. Minimum number of SNVs per cluster.
 Default is 500.}
@@ -44,20 +48,36 @@ be considered a valid grouping.}
 
 \item{verbose}{Whether to print out verbose output or not.}
 
-\item{sbatch_base}{The prefix to use with the sbatch job file.}
+\item{job_base}{The prefix to use with the sbatch job file.}
 
 \item{account}{The hpc account to use.}
 
-\item{slurm_base}{The directory to write slurm output files to.}
+\item{log_base}{The directory to write job output files to.}
 
 \item{temp_dir}{The directory to write temporary files to. This should be
 unique to each sample run to avoid file collisions.}
 
 \item{submit}{Whether to submit the sbatch jobs to the cluster or not.}
 
-\item{other_sbatch_options}{Other options to pass to the sbatch command. This
-should be a list of strings. Do not put "#SBATCH" in front of the
-strings.}
+\item{other_job_header_options}{Other options to pass to the batch job
+header. This should be a list of strings. Do not put "#SBATCH" or "#$" in
+front of the strings.}
+
+\item{other_batch_options}{Other options to pass to the batch job. These
+optional strings will not be part of the header and will be placed verbatim
+after the header. This is useful for passing module load commands, adding
+to the path or other system-specific commands. Should be a list of strings.}
+
+\item{sge_q}{Character string specifying the cluster queue when using sge as
+the job scheduler.}
+
+\item{sge_parallel_environment}{Character string specifying the parallel
+environment (part of the -pe argument in the header) when using sge as the
+job scheduler}
+
+\item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
+"bash". If specifying "sge", sge_q and sge_parallel should be specified if
+defaults are not correct.}
 }
 \value{
 The result of the SLURM job submission.

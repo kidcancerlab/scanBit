@@ -1,14 +1,14 @@
 import argparse
 import sys
-from pysam import VariantFile
-import numpy as np
-from scipy.cluster.hierarchy import linkage, dendrogram, cut_tree
-from scipy.spatial.distance import squareform
-import matplotlib
-matplotlib.use('pdf')
-import matplotlib.pyplot as plt
 import multiprocessing
 from itertools import repeat, chain
+from pysam import VariantFile
+import numpy as np
+from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.spatial.distance import squareform
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('pdf')
 
 ################################################################################
 ### Code
@@ -147,8 +147,8 @@ def calc_proportion_dist_matrix(differences, bootstrap=False):
 def hierarchical_clustering(distance_matrix,
                             linkage_method='ward'):
     distance_matrix = squareform(distance_matrix)
-    Z = linkage(distance_matrix, method=linkage_method)
-    return Z
+    hclust = linkage(distance_matrix, method=linkage_method)
+    return hclust
 
 class cluster_hierarchy:
     def __init__(self, cluster_no, cluster_member_nums,

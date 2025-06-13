@@ -216,11 +216,11 @@ def print_combined_table(differences, samples, genotype_locations):
                fmt = '%s',
                comments = '',
                header = ('chr\tpos\t'
-                         + 'group_1_mean\t'
-                         + 'group_2_mean\t'
-                         + 'cross_group_mean_diffs\t'
-                         + 'within_group_mean_diffs\t'
-                         + 'delta_mean_diffs'))
+                         + 'group_1_within_dist\t'
+                         + 'group_2_within_dist\t'
+                         + 'cross_group_dist\t'
+                         + 'within_groups_mean_dist\t'
+                         + 'cross_minus_within_dist'))
 
 def mean_along_axis(differences_array, axis):
     with warnings.catch_warnings():

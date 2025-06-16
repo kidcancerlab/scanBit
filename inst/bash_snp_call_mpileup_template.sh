@@ -75,7 +75,8 @@ run_mpileup() {
 
 export -f run_mpileup
 
-parallel run_mpileup ::: ${cell_file_array[@]}
+# limiting to 20% of CPU count since I'm telling bcftools to use 5 cpus.
+parallel -j 20% run_mpileup ::: ${cell_file_array[@]}
 
 end_time=$(date +%s)
 

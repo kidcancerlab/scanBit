@@ -15,10 +15,10 @@ get_snp_tree(
   ploidy,
   ref_fasta,
   min_depth = 5,
-  min_snvs_per_cluster = 500,
-  max_prop_missing_at_site = 0.9,
+  min_snvs_per_cluster = 250,
+  max_prop_missing_at_site = 0.75,
   n_bootstraps = 10000,
-  bootstrap_cutoff = 0.99,
+  bootstrap_cutoff = 0.95,
   verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE,
@@ -33,7 +33,7 @@ get_snp_tree(
 \item{cellid_bam_table}{A tibble with three columns: cell_barcode,
 cell_group and bam_file. The cell_barcode column should contain the cell
 barcode, the cell_group column should contain the cluster label and the
-bam_file column should contain the path to the bam file for that cell.}
+bam_file column should contain the path to the bam file for that sample.}
 
 \item{temp_dir}{The directory to write temporary files to. This should be
 unique to each sample run to avoid file collisions.}
@@ -49,8 +49,9 @@ unique to each sample run to avoid file collisions.}
 \item{account}{The hpc account to use.}
 
 \item{ploidy}{Either a file path to a ploidy file, or a string indicating
-the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
-call --ploidy-file option description here:
+the ploidy. "GRCh37" is hg19, "GRCh38" is hg38, "mm10" is mm10.
+"mm10_hg19" and "mm10_hg38" are our custom mixed species reference with
+species prefixes on chromosomes. --ploidy-file option description here:
 "https://samtools.github.io/bcftools/bcftools.html"}
 
 \item{ref_fasta}{The path to the reference fasta file.}
@@ -104,9 +105,7 @@ TRUE if the function succeeded. Output is written to output_dir.
 Generate a tree using SNPs derived from single cell clusters
 }
 \details{
-for ploidy, GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is
-  our mixed species reference with species prefixes on chromosomes, mm10 is
-  mm10
+See vignette for detailed discussion.
 }
 \examples{
 \dontrun{

@@ -30,6 +30,9 @@ You don't necessarily need to assign cell types, but I'm going to use it downstr
 # This is a Seurat object with two patient osteosarcoma mets from one patient
 two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
 
+two_sobj$cell_group <-
+    paste0(two_sobj$sample_name, "_", two_sobj$seurat_clusters)
+
 # Do cell type annotation so I can use macrophages and monocytes as known normal cells
 # The idea is that Osteosarcoma cells are unlikely to be mistakenly annotated as macrophages or monocytes
 hpca <- celldex::HumanPrimaryCellAtlasData()
@@ -58,28 +61,62 @@ This table has three columns, `cell_barcode`, `bam_file`, and `cell_group`.
 
 The `cell_barcode` column should contain the cell barcodes from the Seurat object. It is critical that the cell barcodes match the barcodes that will be found in the bam file. This means that if you appended/prepended sample labels to the barcodes in your Seurat object, you need to strip those off.
 
-The `bam_file` column should contain the absolute path to the BAM file for each cell.
+The `bam_file` column should contain the absolute path to the BAM file for each sample. All cells from a single sample should share the same bam file.
 
-The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful.
+The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces in your cell_group column contents.
 ```{r eval=FALSE}
 cell_barcode_table <-
     two_sobj@meta.data %>%
-    select(used_clusters) %>%
-    dplyr::rename(cell_group = used_clusters) %>%
     rownames_to_column("cell_barcode") %>%
     as_tibble() %>%
-    mutate(bam_file = paste0("/home/gdrobertslab/lab/Counts/",
-                             str_remove(cell_barcode, "_.*"),
-                             "/outs/possorted_genome_bam.bam"),
-           cell_barcode = str_remove(cell_barcode, ".+_"))
+    mutate(
+        bam_file = if_else(
+            sample_name == "S0058",
+            "/home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam",
+            "/home/gdrobertslab/lab/Counts_2/S0059/possorted_genome_bam.bam"
+        ),
+        # I merged samples, so cell barcodes are prepended by the sample names
+        # I'm trimming the cell barcodes to match those in the bam file
+        cell_barcode = str_remove(cell_barcode, ".+_"),
+        cell_group = paste0(sample_name, "_", seurat_clusters)
+    ) %>%
+    select(cell_barcode, bam_file, cell_group)
+```
+
+Example of what my cell_barcode_table looks like
+```
+> cell_barcode_table %>% head(n = 20)
+# A tibble: 20 x 3
+   cell_barcode       bam_file                                                       cell_group
+   <chr>              <chr>                                                          <chr>
+ 1 AAACCCAAGAAATCCA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 2 AAACCCAAGCCACCGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 3 AAACCCACAGCAGTGA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 4 AAACCCAGTCCTGGGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 5 AAACGAAAGCACTCGC-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
+ 6 AAACGAAAGCCGAATG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_11
+ 7 AAACGAACAGGTAGTG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 8 AAACGAAGTCTGTGAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_6
+ 9 AAACGAATCAGCTAGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_12
+10 AAACGAATCATTTGCT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
+11 AAACGAATCCACTGAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
+12 AAACGCTAGATGCTAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+13 AAACGCTCAACGGCCT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
+14 AAACGCTGTCCGATCG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
+15 AAAGAACCAGCAGTTT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
+16 AAAGAACCAGTTCCAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_6
+17 AAAGAACGTATCGCAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+18 AAAGAACGTTTCAGAC-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
+19 AAAGAACTCGGTCTGG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+20 AAAGGATCAAGACAAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
 ```
 
 ### Run scanBit
 This R command creates and runs batch jobs as part of the analysis. This is done either using a job scheduler such as slurm or SGE, or using bash shell scripts. If you want to look at these scripts, they are saved in the temporary folder (temp_folder argument). If submitting to slurm or SGE, the logs are saved there as well.
 
-The tricky bit about running this is going to be making sure that your options for other_job_heading_options and other_batch_options are correct for your system if you are using a job scheduler on a HPC.
+The tricky bit about running this is going to be making sure that your options for other_job_heading_options and other_batch_options are correct for your system.
 
-For other_job_header_options, this is a vector of options as strings that will be passed to the job header. This is either sbatch, qsub header elements. The code will automatically prepend either #SBATCH or #$ to the argument as appropriate.
+For other_job_header_options, this is a vector of options as strings that will be passed to the batch job header. This is either sbatch or qsub header elements. The code will automatically prepend either `#SBATCH` or `#$` to the argument as appropriate.
 
 For slurm, the code automatically adds the following header elements:
 
@@ -94,12 +131,12 @@ For slurm, the code automatically adds the following header elements:
 
 If you need additional options in your job header, add them to the other_job_header_options vector.
 
-If you are in a HPC environment and you need to specify other options for a batch job that are outside of the job header, you can add them to the other_batch_options list. This is typically used for loading modules or changing how conda works, but you can put anything that is required in this vector. These commands will be run at the top of the batch job.
+If you are in a HPC environment and you need to specify other options for a batch job that are outside of the job header, you can add them to the other_batch_options list. This is typically used for loading modules or changing how conda works, but you can put anything that is required in this vector. These commands will be run at the top of the batch job before any other code.
 
 If you want to test everything out, try running get_snp_tree with temp_dir set to an easy to access directory and change the submit argument to FALSE. This will generate the batch job scripts, but not submit them. Then you can look at the scripts to see if they look correct. You can also run the scripts manually to see if they work to check what options you may need to add.
 
-### The ploidy argument
-This takes either:
+
+The ploidy argument takes one of:
 - A character string that will be passed to bcftools call. See bcftools call --ploidy ?. Options are
     - "GRCh37" is hg19
     - "GRCh38" is hg38
@@ -108,12 +145,11 @@ This takes either:
     - "1" if everything is haploid
     - "2" if everything is diploid (all chromosomes, so no sex chroms and MT)
 - "mm10"
-    - this tells bcftools to use the ploidy file included with the package
+    - This tells bcftools to use the ploidy file included with the package
 - "mm10_hg19" or "mm10_hg38"
-    This is mostly for use in our lab as it points to included ploidy files for our custom mixed species references
+    - This is mostly for use in our lab as it points to included ploidy files for our custom mixed species references
 - The path to a custom ploidy file
     - See https://samtools.github.io/bcftools/bcftools.html#call for how to construct this
-
 
 ```{r eval=FALSE}
 start_time <- Sys.time()
@@ -122,22 +158,22 @@ snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
         temp_dir = "output/temp",
-        ploidy = "GRCh37",
+        ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
-        min_snvs_per_cluster = 500,
-        max_prop_missing_at_site = 0.9,
+        min_snvs_per_cluster = 250,
+        max_prop_missing_at_site = 0.75,
         cleanup = FALSE,
-        other_job_header_options = c(
+        other_job_header_options = c( # just optional examples
             "--time=8:00:00",
             "--mail-type=ALL",
             "--mail-user=fake_email@not_a_real_domain.org",
             "--partition=himem,general"
         ),
-        other_batch_options = c( # Just here as examples of things you might put
+        other_batch_options = c( # just optional examples
             "ml purge",
             "ml miniforge3",
             'eval "$(conda shell.bash hook)"',
@@ -163,23 +199,23 @@ For SGE, the code automatically adds the following header elements:
 -N
 -sync y
 
-If you're using sge, you also need to specify the `--sge_q` and `--sge_pe` options.
+When using sge, you also need to specify the `sge_q` and `sge_parallel_environment` options if the default values are not appropriate.
 
-The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is the parallel environment you want to use. This is the value you would put where the word "smp" is in the example below.
+The `sge_q` option is the queue you want to use, and the `sge_parallel_environment` option is the parallel environment you want to use. This is the value you would put where the word "smp" is in the example below.
 
 `#$ -pe smp 30`
 
-So in in this example, you would add --sge_pe = "smp".
+So in in this example, you would add `sge_parallel_environment = "smp"`.
 
 ```{r sge}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
         temp_dir = "output/temp",
-        ploidy = "GRCh37",
+        ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
         min_snvs_per_cluster = 250,
@@ -204,15 +240,16 @@ snp_tree <-
 
 
 ## Run using no job scheduler, just bash scripts
+If you are not on a distributed computational environment, you can also just run everything locally using bash scripts. Be aware that this will take longer as you are limited in how many clusters you can analyze in parallel. RAM usage should be reasonable, around 0.1G per cpu.
 ```{r bash}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
         temp_dir = "output/temp",
-        ploidy = "GRCh37",
+        ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-human/fasta/genome.fa",
+        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
         min_snvs_per_cluster = 250,

@@ -38,12 +38,17 @@ blueprint <- celldex::BlueprintEncodeData()
 
 cell_assign <-
     SingleR::SingleR(as.SingleCellExperiment(two_sobj),
-                     ref = list(hpca,
-                                imm_cells,
-                                blueprint),
-                     labels = list(hpca$label.main,
-                                   imm_cells$label.main,
-                                   blueprint$label.main))
+        ref = list(
+            hpca,
+            imm_cells,
+            blueprint
+        ),
+        labels = list(
+            hpca$label.main,
+            imm_cells$label.main,
+            blueprint$label.main
+        )
+    )
 
 two_sobj$cell_type <-
     cell_assign$labels
@@ -68,10 +73,14 @@ cell_barcode_table <-
     dplyr::rename(cell_group = used_clusters) %>%
     rownames_to_column("cell_barcode") %>%
     as_tibble() %>%
-    mutate(bam_file = paste0("/home/gdrobertslab/lab/Counts/",
-                             str_remove(cell_barcode, "_.*"),
-                             "/outs/possorted_genome_bam.bam"),
-           cell_barcode = str_remove(cell_barcode, ".+_"))
+    mutate(
+        bam_file = paste0(
+            "/home/gdrobertslab/lab/Counts/",
+            str_remove(cell_barcode, "_.*"),
+            "/outs/possorted_genome_bam.bam"
+        ),
+        cell_barcode = str_remove(cell_barcode, ".+_")
+    )
 ```
 
 ### Run scanBit
@@ -171,7 +180,7 @@ The `--sge_q` option is the queue you want to use, and the `--sge_pe` option is 
 
 So in in this example, you would add --sge_pe = "smp".
 
-```{r sge}
+```{r sge, eval=FALSE}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -204,7 +213,7 @@ snp_tree <-
 
 
 ## Run using no job scheduler, just bash scripts
-```{r bash}
+```{r bash, eval=FALSE}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -231,7 +240,7 @@ snp_tree <-
 
 
 ## Adding the results back into your Seurat object and plotting them
-```{r plotting, eval = FALSE}
+```{r plotting, eval=FALSE}
 # Pngs of trees and text output are in the "output/" directory
 
 # Add snv groups to the Seurat object
@@ -266,10 +275,12 @@ control_celltypes <- c("Monocytes", "Macrophages", "NK cells", "NK_cell")
 
 # Figure out which clusters are more than 50% control celltypes
 normal_clusters <-
-    match_celltype_clusters(sobject = two_sobj,
-                            normal_celltypes = control_celltypes,
-                            cluster_col = "used_clusters",
-                            celltype_col = "cell_type")
+    match_celltype_clusters(
+        sobject = two_sobj,
+        normal_celltypes = control_celltypes,
+        cluster_col = "used_clusters",
+        celltype_col = "cell_type"
+    )
 
 two_sobj <-
     label_tumor_cells(
@@ -289,3 +300,48 @@ DimPlot(
 ) +
     NoLegend()
 ```
+
+## Calculate the which variants divide tumors from normal cells
+```{r var_var, eval=FALSE}
+group_strings <-
+    read_tsv(
+        "output/test_two_sobj_5_dist.txt",
+        col_names = c("cluster", "all_groups", "top_groups"),
+        show_col_types = FALSE
+    ) %>%
+    group_by(top_groups) %>%
+    summarize(groups = paste(cluster, collapse = ",")) %>%
+    pull(groups, name = top_groups)
+
+calc_variant_variability(
+    merged_bcf_file = "output/mergedtest_two_sobj_c5.bcf",
+    log_base = "output/merged_c5_slurm_log_var",
+    temp_dir = "tempdiryo",
+    output_file = "output/merged_c5_variable_variants.tsv",
+    group_1 = group_strings["top_lvl_group0"],
+    group_2 = group_strings["top_lvl_group1"],
+    other_batch_options = c( # Just here as examples of things you might put
+        "module purge",
+        "module load miniforge3",
+        'eval "$(conda shell.bash hook)"'
+    )
+)
+
+# Just to show that there are results. Not much to actually learn from this plot
+read_tsv(
+    "output/merged_c5_variable_variants.tsv",
+    show_col_types = FALSE
+) %>%
+    filter(cross_minus_within_dist > 0.5) %>%
+    ggplot(
+        aes(
+            x = pos,
+            y = chr,
+            size = cross_minus_within_dist,
+            color = cross_minus_within_dist,
+            alpha = cross_minus_within_dist
+        )
+    ) +
+    geom_point()
+```
+

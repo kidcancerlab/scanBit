@@ -1,3 +1,7 @@
+# scanBit 0.7.0
+- Changed the underlying code for how batch jobs are submitted to allow for slurm, sge or bash jobs.
+- Updated documentation and vignette.
+
 # scanBit 0.6.0
 - Completely refactored how I pull the reads for each cell from the bam file. I'm now using samtools directly in the pipe to do variant calling which speeds things up a lot.
 

@@ -1,3 +1,6 @@
+# scanBit 0.7.1
+- Fixed a bug with vcfToMatrix.py that I found immediately after the last release. I had moved the argparse code and `args` was no longer global.
+
 # scanBit 0.7.0
 - Changed the underlying code for how batch jobs are submitted to allow for slurm, sge or bash jobs.
 - Updated documentation and vignette.

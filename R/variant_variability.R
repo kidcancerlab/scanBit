@@ -4,12 +4,16 @@
 #'
 #' @inheritParams get_snp_tree
 #' @param merged_bcf_file Character. Path to the merged BCF file.
+#' @param group_1 Comma delimited string of multiple cluster names for
+#'   group 1. No spaces.
+#' @param group_2 Comma delimited string of multiple cluster names for
+#'   group 2. No spaces.
 #' @param output_file Character. Path to the output file cross group . Default
 #'   is merged_bcf_file + "_variable.tsv".
 #' @param min_snvs_per_cluster Numeric. Minimum number of SNVs per cluster.
 #'   Default is 250.
 #'
-#' @return The result of the SLURM job submission.
+#' @return The result of the batch job submission.
 #'
 #' @examples
 #' \dontrun{
@@ -22,20 +26,21 @@
 #' @export
 calc_variant_variability <- function(
         merged_bcf_file,
+        group_1,
+        group_2,
         output_file = paste0(merged_bcf_file, "_variable.tsv"),
         min_snvs_per_cluster = 250,
         max_prop_missing_at_site = 0.5,
         verbose = TRUE,
         job_base = "batch",
         account = "gdrobertslab",
-        log_base,
-        slurm_base = "slurmOut",
+        log_base = "slurm_log_var",
         temp_dir = tempdir(),
         submit = TRUE,
         other_job_header_options = "",
         other_batch_options = "",
-        sge_q,
-        sge_parallel_environment,
+        sge_q = "all.q",
+        sge_parallel_environment = "smp",
         job_scheduler = "slurm") {
     py_file <- file.path(find.package("scanBit"), "exec/id_diff_vars.py")
 
@@ -65,6 +70,8 @@ calc_variant_variability <- function(
                                             ),
             "placeholder_py_script",        py_file,
             "placeholder_bcf_input",        merged_bcf_file,
+            "placeholder_group_1",          group_1,
+            "placeholder_group_2",          group_2,
             "placeholder_min_snvs",         as.character(
                                                 min_snvs_per_cluster
                                             ),
@@ -72,19 +79,19 @@ calc_variant_variability <- function(
                                                 max_prop_missing_at_site
                                             ),
             "placeholder_verbose",          verbose_setting,
-            "placeholder_groups_output",    output_file
+            "placeholder_out_file",    output_file
         )
 
     # Call mpileup on each cell id file using a template and substituting
     # out the placeholder fields and index the individual bcf files
     result <-
-        use_sbatch_template(
+        use_job_template(
             replace_tibble_dist,
-            "vcf_to_matrix.sh",
+            "bcf_variant_variability.sh",
             warning_label = "Calculating variable variants from BCF",
             submit = submit,
             file_dir = temp_dir,
-            temp_prefix = paste0(job_base, "_var")
+            temp_prefix = paste0(job_base, "_var_")
         )
 
     return(result)

@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_slurm_out
-#SBATCH --error=placeholder_slurm_out
+#SBATCH --output=placeholder_job_log
+#SBATCH --error=placeholder_job_log
 #SBATCH --job-name scanBit_var
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -24,10 +24,10 @@ python \
     placeholder_py_script \
         --processes 2 \
         --bcf placeholder_bcf_input \
-        --min_snvs_for_cluster placeholder_min_snvs \
-        --max_prop_missing placeholder_max_missing \
         --group_1 placeholder_group_1 \
         --group_2 placeholder_group_2 \
+        --min_snvs_for_cluster placeholder_min_snvs \
+        --max_prop_missing placeholder_max_missing \
         --out_file placeholder_out_file
 
 end_time=$(date +%s)

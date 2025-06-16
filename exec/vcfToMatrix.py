@@ -14,12 +14,62 @@ matplotlib.use('pdf')
 ### Code
 
 def main():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--bcf',
+                        type = str,
+                        default=  '/home/gdrobertslab/mvc002/analyses/roberts/24_Osteo_atlas/output/id_tumor/snvs/mouse_S0169/mergedS0169_c5.bcf',
+                        help = 'BCF file with multiple samples as columns')
+    parser.add_argument('--figure_file',
+                        '-o',
+                        type = str,
+                        default = 'dendrogram.pdf',
+                        help = 'output file name of plot. Id suggest either png or pdf')
+    parser.add_argument('--min_snvs_for_cluster',
+                        type = int,
+                        default = 1000,
+                        help = 'minimum number of SNVs for a cluster to be included')
+    parser.add_argument('--max_prop_missing',
+                        type = float,
+                        default = 0.9,
+                        help = 'max proportion of missing data allowed at a single locus')
+    parser.add_argument('--n_bootstrap',
+                        type = int,
+                        default = 1000,
+                        help = 'number of bootstrap samples to use')
+    parser.add_argument('--bootstrap_threshold',
+                        type = float,
+                        default = 0.99,
+                        help = 'threshold for collapsing clusters')
+    parser.add_argument('--verbose',
+                        action = 'store_true',
+                        help = 'print out extra information')
+    parser.add_argument('--processes',
+                        '-p',
+                        type = int,
+                        default = 1,
+                        help = 'number of processes to use for parallel processing')
+    parser.add_argument('--fig_width',
+                        type = float,
+                        default = 6,
+                        help = 'width of the figure in inches')
+    parser.add_argument('--fig_height',
+                        type = float,
+                        default = 6,
+                        help = 'height of the figure in inches')
+    parser.add_argument('--fig_dpi',
+                        type = int,
+                        default = 300,
+                        help = 'dpi of the figure')
+
+    args = parser.parse_args()
+
     if args.verbose:
         print("Calculating distance matrix", file = sys.stderr)
     differences, samples = get_diff_matrix_from_bcf(
-        bcf_file = args.bcf,
-        min_snvs_for_cluster = args.min_snvs_for_cluster,
-        max_prop_missing = args.max_prop_missing)
+        args.bcf,
+        args.min_snvs_for_cluster,
+        args.max_prop_missing,
+        args.processes)
 
     prop_diff_matrix = calc_proportion_dist_matrix(differences)
 
@@ -52,17 +102,17 @@ def main():
 
     collapsed_clusters = collapse_clusters(node_members,
                                            bootstrap_values,
-                                           threshold=args.bootstrap_threshold)
+                                           args.bootstrap_threshold)
 
     top_lvl_clusters = collapse_top_lvl_clusters(node_members,
                                                  bootstrap_values,
-                                                 threshold=args.bootstrap_threshold)
+                                                 args.bootstrap_threshold)
 
     print_cluster_names(collapsed_clusters, top_lvl_clusters)
 
     if args.verbose:
         print("Done!", file=sys.stderr)
-    return()
+    return
 
 
 ########
@@ -71,14 +121,15 @@ def main():
 ####### Can I clear out genotypes with all missing data? #################
 def get_diff_matrix_from_bcf(bcf_file,
                              min_snvs_for_cluster,
-                             max_prop_missing):
+                             max_prop_missing,
+                             threads):
     dist_key_dict = {'00':            0,
                      '01':            1,
                      '10':            1,
                      '11':            2,
                      '(None, None)':  np.nan}
     ### Check if bcf index exists
-    bcf_in = VariantFile(bcf_file, threads = args.processes)
+    bcf_in = VariantFile(bcf_file, threads = threads)
     samples = tuple(bcf_in.header.samples)
     records = tuple(x for x in list(bcf_in.fetch()) if (len(x.alts) == 1))
     bcf_in.close()
@@ -106,7 +157,7 @@ def get_diff_matrix_from_bcf(bcf_file,
 
     if differences.shape[1] < 2:
         sys.exit(
-            f'Not enough clusters with > {min_snvs_for_cluster} SNVs for {args.bcf}'
+            f'Not enough clusters with > {min_snvs_for_cluster} SNVs for {bcf_file}'
         )
 
     return differences, samples
@@ -238,7 +289,7 @@ def bootstrap_worker(rand_seed, differences, true_cluster_dict, samples):
 def get_subcluster_set(cluster_dict, node_name):
     subclusters = cluster_dict.get(node_name).sub_cluster_names
     subclusters_cat = ["-".join(sorted(x)) for x in subclusters]
-    return(set(subclusters_cat))
+    return set(subclusters_cat)
 
 def compare_orig_boot_dicts(true_cluster_dict, boot_cluster_dict):
     node_names = list(true_cluster_dict.keys())
@@ -321,7 +372,7 @@ def plot_dendro_with_bootstrap_values(hclust,
         support = bootstrap_values[i] * 100 # original data is proportion
         plt.text(x, y, f'{support:.2f}%', va='bottom', ha='center', fontsize=6)
 
-    return(plt)
+    return plt
 
 def make_parent_key(true_clusters):
     parent_key = {}
@@ -339,7 +390,7 @@ def make_parent_key(true_clusters):
 
 def collapse_clusters(true_clusters,
                       bootstrap_values,
-                      threshold = args.bootstrap_threshold):
+                      threshold):
     # This is a dict where the key is cluster number and value is parent number
     parent_key = make_parent_key(true_clusters)
 
@@ -380,7 +431,7 @@ def collapse_clusters(true_clusters,
 
 def collapse_top_lvl_clusters(true_clusters,
                               bootstrap_values,
-                              threshold = args.bootstrap_threshold):
+                              threshold):
     top_lvl = len(bootstrap_values) - 1
     # top_lvl bootstrap value is the first division
     # We want either one or two lists inside another list
@@ -413,53 +464,4 @@ def print_cluster_names(collapsed_clusters, top_lvl_clusters):
 ### main
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--bcf',
-                        type = str,
-                        default=  '/home/gdrobertslab/mvc002/analyses/roberts/24_Osteo_atlas/output/id_tumor/snvs/mouse_S0169/mergedS0169_c5.bcf',
-                        help = 'BCF file with multiple samples as columns')
-    parser.add_argument('--figure_file',
-                        '-o',
-                        type = str,
-                        default = 'dendrogram.pdf',
-                        help = 'output file name of plot. Id suggest either png or pdf')
-    parser.add_argument('--min_snvs_for_cluster',
-                        type = int,
-                        default = 1000,
-                        help = 'minimum number of SNVs for a cluster to be included')
-    parser.add_argument('--max_prop_missing',
-                        type = float,
-                        default = 0.9,
-                        help = 'max proportion of missing data allowed at a single locus')
-    parser.add_argument('--n_bootstrap',
-                        type = int,
-                        default = 1000,
-                        help = 'number of bootstrap samples to use')
-    parser.add_argument('--bootstrap_threshold',
-                        type = float,
-                        default = 0.99,
-                        help = 'threshold for collapsing clusters')
-    parser.add_argument('--verbose',
-                        action = 'store_true',
-                        help = 'print out extra information')
-    parser.add_argument('--processes',
-                        '-p',
-                        type = int,
-                        default = 1,
-                        help = 'number of processes to use for parallel processing')
-    parser.add_argument('--fig_width',
-                        type = float,
-                        default = 6,
-                        help = 'width of the figure in inches')
-    parser.add_argument('--fig_height',
-                        type = float,
-                        default = 6,
-                        help = 'height of the figure in inches')
-    parser.add_argument('--fig_dpi',
-                        type = int,
-                        default = 300,
-                        help = 'dpi of the figure')
-
-    args = parser.parse_args()
-
     main()

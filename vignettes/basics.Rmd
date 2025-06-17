@@ -22,6 +22,12 @@ library(tidyverse)
 
 ## Using SNPs to define tumor clusters
 
+### Prep the conda environment
+scanBit uses a conda enviroment to run some parts of the code. To set this up you can run the command below. This will check if you have the environment and if it's the right version. It will install or re-install itself if needed. This also gets run during get_snp_tree(), but if you run the command on multiple samples at once in parallel it will try to create the conda environment in each process independantly and break the conda environment. That's why I recommend running it by itself.
+```{r conda_setup, eval=FALSE}
+confirm_conda_env()
+```
+
 ### Prep the input data
 I'm reading in a pre-made Seurat object with two merged samples in it.
 
@@ -77,8 +83,7 @@ cell_barcode_table <-
         ),
         # I merged samples, so cell barcodes are prepended by the sample names
         # I'm trimming the cell barcodes to match those in the bam file
-        cell_barcode = str_remove(cell_barcode, ".+_"),
-        cell_group = paste0(sample_name, "_", seurat_clusters)
+        cell_barcode = str_remove(cell_barcode, ".+_")
     ) %>%
     select(cell_barcode, bam_file, cell_group)
 ```

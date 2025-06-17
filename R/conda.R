@@ -5,10 +5,9 @@
 #'
 #' @return NULL
 #'
-#' @noRd
+#' @export
 confirm_conda_env <- function() {
     # Eventually, maybe drop this in alongside the package
-    #pkg_location <- find.package("scanBit")
 
     env_found <- conda_env_exists()
 

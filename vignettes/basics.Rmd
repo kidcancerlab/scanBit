@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r libraries}
+```{r libraries, eval=FALSE}
 library(Seurat)
 library(scanBit)
 library(tidyverse)
@@ -70,7 +70,7 @@ The `cell_barcode` column should contain the cell barcodes from the Seurat objec
 The `bam_file` column should contain the absolute path to the BAM file for each sample. All cells from a single sample should share the same bam file.
 
 The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces in your cell_group column contents.
-```{r eval=FALSE}
+```{r make_cbt, eval=FALSE}
 cell_barcode_table <-
     two_sobj@meta.data %>%
     rownames_to_column("cell_barcode") %>%
@@ -156,7 +156,7 @@ The ploidy argument takes one of:
 - The path to a custom ploidy file
     - See https://samtools.github.io/bcftools/bcftools.html#call for how to construct this
 
-```{r eval=FALSE}
+```{r slurm_scanbit, eval=FALSE}
 start_time <- Sys.time()
 
 snp_tree <-
@@ -212,7 +212,7 @@ The `sge_q` option is the queue you want to use, and the `sge_parallel_environme
 
 So in in this example, you would add `sge_parallel_environment = "smp"`.
 
-```{r sge}
+```{r sge_scanbit, eval=FALSE}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -246,7 +246,7 @@ snp_tree <-
 
 ## Run using no job scheduler, just bash scripts
 If you are not on a distributed computational environment, you can also just run everything locally using bash scripts. Be aware that this will take longer as you are limited in how many clusters you can analyze in parallel. RAM usage should be reasonable, around 0.1G per cpu.
-```{r bash}
+```{r bash_scanbit, eval=FALSE}
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -273,7 +273,7 @@ snp_tree <-
 
 
 ## Adding the results back into your Seurat object and plotting them
-```{r plotting, eval = FALSE}
+```{r plotting, eval=FALSE}
 # Pngs of trees and text output are in the "output/" directory
 
 # Add snv groups to the Seurat object

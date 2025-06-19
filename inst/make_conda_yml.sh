@@ -9,11 +9,13 @@ set -e
 # set conda channel priority to strict
 conda config --set channel_priority strict
 
+# can use "conda create" instead of "mamba create" if needed
 mamba create -y -n scanBit_xkcd_1337 python=3.12
 conda activate scanBit_xkcd_1337
 
 conda env config vars set scanBit_version=0.6.0
 
+# can use "conda install" instead of "mamba install" if needed
 mamba install -y samtools bcftools
 
 pip install pysam numpy pandas matplotlib scipy

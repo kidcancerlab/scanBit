@@ -117,6 +117,7 @@ def write_variant_diff_file(bcf_file,
     ])
 
     genotype_locations = np.array([(rec.chrom, str(rec.pos)) for rec in records])
+    alt_genotypes = np.array([rec.alts[0] for rec in records])
 
     # Convert genotype tuples to strings and look up in dist_key_dict
     genotype_matrix = np.array([
@@ -128,6 +129,7 @@ def write_variant_diff_file(bcf_file,
     percent_missing = np.sum(np.isnan(genotype_matrix), axis=1) / len(samples)
     genotype_matrix = genotype_matrix[percent_missing <= max_prop_missing]
     genotype_locations = genotype_locations[percent_missing <= max_prop_missing]
+    alt_genotypes = alt_genotypes[percent_missing <= max_prop_missing]
 
     # Filter out clusters/samples with too few variants called
     keep_sample_mask = (
@@ -152,7 +154,9 @@ def write_variant_diff_file(bcf_file,
     print_combined_table(
         differences,
         samples,
-        genotype_locations
+        genotype_locations,
+        alt_genotypes,
+        genotype_matrix
     )
 
 def parse_groups(samples):
@@ -169,7 +173,11 @@ def parse_groups(samples):
 
     return group_1, group_2
 
-def print_combined_table(differences, samples, genotype_locations):
+def print_combined_table(differences,
+                         samples,
+                         genotype_locations,
+                         alt_genotypes,
+                         genotype_matrix):
     group_1, group_2 = parse_groups(samples)
 
     cross_group_mean_diffs = mean_along_axis(
@@ -196,19 +204,28 @@ def print_combined_table(differences, samples, genotype_locations):
 
     delta_mean_diffs = cross_group_mean_diffs - within_group_mean_diffs
 
+    mean_alts_group_1 = mean_along_axis(genotype_matrix[:, group_1], 1)
+    mean_alts_group_2 = mean_along_axis(genotype_matrix[:, group_2], 1)
+
+    # If you change the order of these columns make sure you update the column
+    # info in *_cell_var_calls.sh and in cross_minus_within_dist_indx below
     combined_table = np.concatenate((genotype_locations,
+                                     alt_genotypes[:, None],
                                      within_group_1_mean[:, None],
                                      within_group_2_mean[:, None],
                                      cross_group_mean_diffs[:, None],
                                      within_group_mean_diffs[:, None],
-                                     delta_mean_diffs[:, None]),
-                                    axis = 1)
+                                     delta_mean_diffs[:, None],
+                                     mean_alts_group_1[:, None],
+                                     mean_alts_group_2[:, None]),
+                                     axis = 1)
 
     # Get rid of positions where the difference is nan
     combined_table = combined_table[~np.isnan(delta_mean_diffs)]
 
     # Rearrange the table by the delta_mean_diffs in descending order
-    combined_table = combined_table[np.argsort(combined_table[:, 6])[::-1]]
+    cross_minus_within_dist_indx = 7
+    combined_table = combined_table[np.argsort(combined_table[:, cross_minus_within_dist_indx])[::-1]]
 
     np.savetxt(args.out_file,
                combined_table,
@@ -216,11 +233,14 @@ def print_combined_table(differences, samples, genotype_locations):
                fmt = '%s',
                comments = '',
                header = ('chr\tpos\t'
+                         + 'alt_gt\t'
                          + 'group_1_within_dist\t'
                          + 'group_2_within_dist\t'
                          + 'cross_group_dist\t'
                          + 'within_groups_mean_dist\t'
-                         + 'cross_minus_within_dist'))
+                         + 'cross_minus_within_dist\t'
+                         + 'mean_group_1_alts\t'
+                         + 'mean_group_2_alts'))
 
 def mean_along_axis(differences_array, axis):
     with warnings.catch_warnings():

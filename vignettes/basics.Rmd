@@ -305,7 +305,7 @@ DimPlot(
 ```{r var_var, eval=FALSE}
 group_strings <-
     read_tsv(
-        "output/test_two_sobj_5_dist.txt",
+        "output/test_two_sobj_5_groups.txt",
         col_names = c("cluster", "all_groups", "top_groups"),
         show_col_types = FALSE
     ) %>%
@@ -316,7 +316,7 @@ group_strings <-
 calc_variant_variability(
     merged_bcf_file = "output/mergedtest_two_sobj_c5.bcf",
     log_base = "output/merged_c5_slurm_log_var",
-    temp_dir = "tempdiryo",
+    temp_dir = "output/temp",
     output_file = "output/merged_c5_variable_variants.tsv",
     group_1 = group_strings["top_lvl_group0"],
     group_2 = group_strings["top_lvl_group1"],
@@ -343,5 +343,38 @@ read_tsv(
         )
     ) +
     geom_point()
+```
+
+
+## Try calling variants on only the important variant positions
+```{r cell_vars, eval = FALSE}
+s_59_cell_barcodes <-
+    two_sobj %>%
+    subset(sample_name == "S0059") %>%
+    colnames() %>%
+    str_remove("S0059_") %>%
+    paste(collapse = " ")
+
+call_variants_single_cell(
+    bam_to_use = "/home/gdrobertslab/lab/Counts_2/S0059/possorted_genome_bam.bam",
+    variable_variants_file = "output/merged_c5_variable_variants.tsv",
+    cell_barcodes = s_59_cell_barcodes,
+    output_file = "cell_variant_calls_S059.tsv",
+    min_depth = 3,
+    variant_diff_cutoff = 1,
+    ploidy = "GRCh38",
+    ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+    job_base = "cell_vars",
+    log_base = "slurm_cell_vars",
+    temp_dir = "output/temp/cell_vars_59",
+    submit = TRUE,
+    other_job_header_options = "",
+    other_batch_options = c( # Just here as examples of things you might put
+        "module purge",
+        "module load miniforge3",
+        'eval "$(conda shell.bash hook)"'
+    )
+)
+
 ```
 

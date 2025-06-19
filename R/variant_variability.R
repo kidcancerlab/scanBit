@@ -47,6 +47,10 @@ calc_variant_variability <- function(
     verbose_setting <-
         dplyr::if_else(verbose, "--verbose", "")
 
+    if (!dir.exists(temp_dir)) {
+        dir.create(temp_dir, recursive = TRUE)
+    }
+
     job_header_other <-
         make_header_other_string(other_job_header_options, job_scheduler)
 
@@ -89,6 +93,110 @@ calc_variant_variability <- function(
             replace_tibble_dist,
             "bcf_variant_variability.sh",
             warning_label = "Calculating variable variants from BCF",
+            submit = submit,
+            file_dir = temp_dir,
+            temp_prefix = paste0(job_base, "_var_")
+        )
+
+    return(result)
+}
+
+
+#' Call Variants on Each Cell From Select Variants
+#'
+#' This function ...............
+#'
+#' @inheritParams get_snp_tree
+#' @param merged_bcf_file Character. Path to the merged BCF file.
+#' @param variable_variants_file Path to the location of the file produced by
+#'   calc_variant_variability().
+#' @param output_file Character. Path to the output file of per-cell variant
+#'   calls.
+#' @param variant_diff_cutoff Numeric threshold to use to selct variants from
+#'   variable_variants_file. Any variant with cross_minus_within_dist greater
+#'   or equal to the cutoff will be used.
+#'
+#' @return The result of the batch job submission. The data is printed to the
+#' file specified by output_file.
+#'
+#' @examples
+#' \dontrun{
+#'   call_variants_single_cell(
+#'       bam_to_use = "path/to/merged.bcf",
+#'       variable_variants_file,
+#'       cell_barcodes,
+#'       ref_fasta,
+#'       ploidy,
+#'       output_file = "variable_variants.tsv"
+#'   )
+#' }
+#'
+#' @export
+call_variants_single_cell <- function(
+        bam_to_use,
+        variable_variants_file,
+        cell_barcodes,
+        output_file = "cell_variant_calls.tsv",
+        ref_fasta,
+        min_depth = 1,
+        variant_diff_cutoff = 1,
+        ploidy,
+        job_base = "batch",
+        account = "gdrobertslab",
+        log_base = "slurm_log_var",
+        temp_dir = tempfile(pattern = "tempdir"),
+        submit = TRUE,
+        other_job_header_options = "",
+        other_batch_options = "",
+        sge_q = "all.q",
+        sge_parallel_environment = "smp",
+        job_scheduler = "slurm") {
+
+    # Check that temp_dir exists, and if not, create it
+    if (!dir.exists(temp_dir)) {
+        dir.create(temp_dir, recursive = TRUE)
+    }
+    message("Using temporary directory: ", temp_dir)
+
+    job_header_other <-
+        make_header_other_string(other_job_header_options, job_scheduler)
+
+    replace_tibble_dist <-
+        dplyr::tribble(
+            ~find,                           ~replace,
+            "placeholder_account",           account,
+            "placeholder_job_log",           paste0(
+                                                temp_dir, "/",
+                                                log_base,
+                                                "var-",
+                                                get_job_id_str(job_scheduler),
+                                                ".out"
+                                             ),
+            "placeholder_sge_q",             sge_q,
+            "placeholder_sge_thread",        sge_parallel_environment,
+            "placeholder_job_header_other",  job_header_other,
+            "placeholder_batch_other",       paste0(
+                                                other_batch_options,
+                                                collapse = "\n"
+                                             ),
+            "placeholder_variant_cutoff",    as.character(variant_diff_cutoff),
+            "placeholder_variable_variants", variable_variants_file,
+            "placeholder_ploidy",            ploidy,
+            "placeholder_temp_dir",          temp_dir,
+            "placeholder_min_depth",         as.character(min_depth),
+            "placeholder_bam_file",          bam_to_use,
+            "placeholder_ref_fasta",         ref_fasta,
+            "placeholder_cell_barcodes",     cell_barcodes,
+            "placeholder_out_file",          output_file
+        )
+
+    # Call mpileup on each cell id file using a template and substituting
+    # out the placeholder fields and index the individual bcf files
+    result <-
+        use_job_template(
+            replace_tibble_dist,
+            "cell_var_calls.sh",
+            warning_label = "Calculating single cell variants",
             submit = submit,
             file_dir = temp_dir,
             temp_prefix = paste0(job_base, "_var_")

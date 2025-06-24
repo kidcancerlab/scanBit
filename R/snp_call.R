@@ -301,6 +301,11 @@ call_snps <- function(cellid_bam_table,
 
     array_max <-
         length(cell_files) - 1
+    
+    if (job_scheduler == "sge") {
+        # SGE arrays start at 1, not zero :-|
+        array_max <- array_max + 1
+    }
 
     ploidy <- pick_ploidy(ploidy)
 

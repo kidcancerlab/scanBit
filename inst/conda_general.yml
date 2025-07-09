@@ -1,0 +1,15 @@
+name: scanBit_xkcd_1337
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  - bcftools
+  - matplotlib
+  - numpy
+  - pandas
+  - pysam
+  - samtools[version='>=1.13']
+  - scipy
+variables:
+  scanBit_version: 0.7.1

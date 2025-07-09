@@ -4,12 +4,22 @@
 \alias{confirm_conda_env}
 \title{confirm_conda_env}
 \usage{
-confirm_conda_env()
+confirm_conda_env(general = FALSE)
+}
+\arguments{
+\item{general}{Boolean indicating if the conda environment should be
+created using specific versions (FALSE) or just using general modules
+(TRUE).}
+}
+\value{
+TRUE if the environment is correct or if it was created correctly,
+  otherwise FALSE.
 }
 \description{
 confirm_conda_env
 }
 \details{
 Checks if the conda environment "scanBit_xkcd_1337" exists and
-creates it if not.
+creates it if not. Also confirms that the version of the environment matches
+the package version.
 }

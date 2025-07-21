@@ -1,6 +1,8 @@
 #' Use Merged BCF File to Quantify Variant Variability Across Groups
 #'
-#' This function ...............
+#' This function quantifies the variability of variants across two groups of
+#' clusters in a merged BCF file. It uses a Python script to calculate the
+#' variant variability and returns the results in a specified output file.
 #'
 #' @inheritParams get_snp_tree
 #' @param merged_bcf_file Character. Path to the merged BCF file.
@@ -12,6 +14,17 @@
 #'   is merged_bcf_file + "_variable.tsv".
 #' @param min_snvs_per_cluster Numeric. Minimum number of SNVs per cluster.
 #'   Default is 250.
+#'
+#' @details
+#' The output file has the following columns:
+#' - chr: Chromosome
+#' - pos: Position of the variant
+#' - alt_gt: Alternate genotype
+#' - group_1_within_dist: Genetic distance within group 1
+#' - group_2_within_dist: Genetic distance within group 2
+#' - cross_group_dist: Genetic distance between groups
+#' - cross_minus_within_dist: Difference between cross group distance and
+#'  within group distances
 #'
 #' @return The result of the batch job submission.
 #'
@@ -101,15 +114,16 @@ calc_variant_variability <- function(
     return(result)
 }
 
-
 #' Call Variants on Each Cell From Select Variants
 #'
-#' This function ...............
+#' This function calls variants on each cell from the selected variants.
 #'
 #' @inheritParams get_snp_tree
-#' @param merged_bcf_file Character. Path to the merged BCF file.
+#' @param bam_to_use Character. Path to the BAM file to use for variant calling.
 #' @param variable_variants_file Path to the location of the file produced by
 #'   calc_variant_variability().
+#' @param cell_barcodes A single string with all cell barcodes to look for in
+#'   the bam file. Each barcode should be separated by a space.
 #' @param output_file Character. Path to the output file of per-cell variant
 #'   calls.
 #' @param variant_diff_cutoff Numeric threshold to use to selct variants from

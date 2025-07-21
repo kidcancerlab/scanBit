@@ -26,8 +26,13 @@ call_variants_single_cell(
 )
 }
 \arguments{
+\item{bam_to_use}{Character. Path to the BAM file to use for variant calling.}
+
 \item{variable_variants_file}{Path to the location of the file produced by
 calc_variant_variability().}
+
+\item{cell_barcodes}{A single string with all cell barcodes to look for in
+the bam file. Each barcode should be separated by a space.}
 
 \item{output_file}{Character. Path to the output file of per-cell variant
 calls.}
@@ -76,15 +81,13 @@ job scheduler}
 \item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
 "bash". If specifying "sge", sge_q and sge_parallel should be specified if
 defaults are not correct.}
-
-\item{merged_bcf_file}{Character. Path to the merged BCF file.}
 }
 \value{
 The result of the batch job submission. The data is printed to the
 file specified by output_file.
 }
 \description{
-This function ...............
+This function calls variants on each cell from the selected variants.
 }
 \examples{
 \dontrun{

@@ -79,7 +79,20 @@ defaults are not correct.}
 The result of the batch job submission.
 }
 \description{
-This function ...............
+This function quantifies the variability of variants across two groups of
+clusters in a merged BCF file. It uses a Python script to calculate the
+variant variability and returns the results in a specified output file.
+}
+\details{
+The output file has the following columns:
+- chr: Chromosome
+- pos: Position of the variant
+- alt_gt: Alternate genotype
+- group_1_within_dist: Genetic distance within group 1
+- group_2_within_dist: Genetic distance within group 2
+- cross_group_dist: Genetic distance between groups
+- cross_minus_within_dist: Difference between cross group distance and
+ within group distances
 }
 \examples{
 \dontrun{

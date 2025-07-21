@@ -320,11 +320,13 @@ calc_variant_variability(
     output_file = "output/merged_c5_variable_variants.tsv",
     group_1 = group_strings["top_lvl_group0"], # Group_1 is tumor
     group_2 = group_strings["top_lvl_group1"],
+    other_job_header_options = c("--time=05:00:00"),
     other_batch_options = c( # Just here as examples of things you might put
         "module purge",
         "module load miniforge3",
         'eval "$(conda shell.bash hook)"'
-    )
+    ),
+    job_scheduler = "slurm"
 )
 
 # Just to show that there are results. Not much to actually learn from this plot
@@ -346,8 +348,8 @@ read_tsv(
 ```
 
 
-## Try calling variants on only the important variant positions
-```{r cell_vars, eval = FALSE}
+## Try calling variants from individual cells, but only on the important variant positions
+```{r cell_vars, eval=FALSE}
 s_59_cell_barcodes <-
     two_sobj %>%
     subset(sample_name == "S0059") %>%
@@ -370,7 +372,7 @@ call_variants_single_cell(
     log_base = "slurm_cell_vars",
     temp_dir = "output/temp/cell_vars_59",
     submit = TRUE,
-    other_job_header_options = "",
+    other_job_header_options = c("--time=05:00:00"),
     other_batch_options = c( # Just here as examples of things you might put
         "module purge",
         "module load miniforge3",
@@ -379,7 +381,8 @@ call_variants_single_cell(
 )
 ```
 
-```{r }
+## Work in progress section on variable variants
+```{r, eval=FALSE}
 count_to_call <-
     c(
         "0" = "0/0",

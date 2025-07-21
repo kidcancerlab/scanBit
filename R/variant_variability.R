@@ -68,7 +68,7 @@ calc_variant_variability <- function(
         make_header_other_string(other_job_header_options, job_scheduler)
 
     replace_tibble_dist <-
-        dplyr::tribble(
+        tibble::tribble(
             ~find,                          ~replace,
             "placeholder_account",          account,
             "placeholder_job_log",          paste0(
@@ -176,7 +176,7 @@ call_variants_single_cell <- function(
         make_header_other_string(other_job_header_options, job_scheduler)
 
     replace_tibble_dist <-
-        dplyr::tribble(
+        tibble::tribble(
             ~find,                           ~replace,
             "placeholder_account",           account,
             "placeholder_job_log",           paste0(

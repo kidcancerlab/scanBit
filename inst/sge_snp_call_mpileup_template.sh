@@ -7,7 +7,7 @@
 #$ -pe placeholder_sge_thread 5
 #$ -N placeholder_job_name
 #$ -sync y
-#$ -t 0-placeholder_array_max
+#$ -t 1-placeholder_array_max
 placeholder_job_header_other
 
 placeholder_batch_other
@@ -21,7 +21,7 @@ echo ${HOSTNAME} ${SGE_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 conda activate scanBit_xkcd_1337
 
 cell_file_array=(placeholder_cell_files)
-cell_file=${cell_file_array[$SGE_TASK_ID]}
+cell_file=${cell_file_array[${SGE_TASK_ID} - 1]}
 
 if [ ! -d placeholder_bcf_dir ]
 then

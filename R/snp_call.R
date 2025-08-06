@@ -28,6 +28,8 @@
 #' @param bootstrap_cutoff The bootstrap cutoff to use when collapsing the tree.
 #'   This is the proportion of bootstraps that must support a grouping for it to
 #'   be considered a valid grouping.
+#' @param tree_image_type The type of image to use for the tree. Can be "png",
+#'   or "pdf". This will be the file extension used for the tree image file.
 #' @param verbose Whether to print out verbose output or not.
 #' @param submit Whether to submit the sbatch jobs to the cluster or not.
 #' @param cleanup Whether to clean up the temporary files after execution.
@@ -70,6 +72,7 @@ get_snp_tree <- function(cellid_bam_table,
                          max_prop_missing_at_site = 0.75,
                          n_bootstraps = 10000,
                          bootstrap_cutoff = 0.95,
+                         tree_image_type = "png",
                          verbose = TRUE,
                          submit = TRUE,
                          cleanup = TRUE,
@@ -216,7 +219,8 @@ get_snp_tree <- function(cellid_bam_table,
                             output_base_name,
                             "_",
                             this_min_depth,
-                            "_tree.png"
+                            "_tree.",
+                            tree_image_type
                         )
                     ),
                 verbose = verbose,

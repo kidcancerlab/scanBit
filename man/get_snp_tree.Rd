@@ -19,6 +19,7 @@ get_snp_tree(
   max_prop_missing_at_site = 0.75,
   n_bootstraps = 10000,
   bootstrap_cutoff = 0.95,
+  tree_image_type = "png",
   verbose = TRUE,
   submit = TRUE,
   cleanup = TRUE,
@@ -71,6 +72,9 @@ of samples in the hierarchical clustering tree.}
 \item{bootstrap_cutoff}{The bootstrap cutoff to use when collapsing the tree.
 This is the proportion of bootstraps that must support a grouping for it to
 be considered a valid grouping.}
+
+\item{tree_image_type}{The type of image to use for the tree. Can be "png",
+or "pdf". This will be the file extension used for the tree image file.}
 
 \item{verbose}{Whether to print out verbose output or not.}
 

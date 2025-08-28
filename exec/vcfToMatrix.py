@@ -9,6 +9,9 @@ from scipy.spatial.distance import squareform
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('pdf')
+# from https://physicalmodelingwithpython.blogspot.com/2015/06/making-plots-for-publication.html
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['svg.fonttype'] = 'none'
 
 ################################################################################
 ### Code

@@ -64,7 +64,7 @@ samtools view \
     | bcftools filter \
         --threads 5 \
         -g 10 \
-        -e "FORMAT/DP<=placeholder_min_depth" \
+        -e "FORMAT/DP<placeholder_min_depth" \
         -O u \
     | bcftools view \
         --threads 5 \

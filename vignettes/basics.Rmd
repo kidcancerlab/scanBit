@@ -279,7 +279,6 @@ snp_tree <-
 
 ## Adding the results back into your Seurat object and plotting them
 ```{r plotting, eval=FALSE}
-```{r plotting, eval=FALSE}
 # Pngs of trees and text output are in the "output/" directory
 
 # Add snv groups to the Seurat object

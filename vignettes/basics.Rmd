@@ -47,12 +47,17 @@ blueprint <- celldex::BlueprintEncodeData()
 
 cell_assign <-
     SingleR::SingleR(as.SingleCellExperiment(two_sobj),
-                     ref = list(hpca,
-                                imm_cells,
-                                blueprint),
-                     labels = list(hpca$label.main,
-                                   imm_cells$label.main,
-                                   blueprint$label.main))
+        ref = list(
+            hpca,
+            imm_cells,
+            blueprint
+        ),
+        labels = list(
+            hpca$label.main,
+            imm_cells$label.main,
+            blueprint$label.main
+        )
+    )
 
 two_sobj$cell_type <-
     cell_assign$labels
@@ -274,6 +279,7 @@ snp_tree <-
 
 ## Adding the results back into your Seurat object and plotting them
 ```{r plotting, eval=FALSE}
+```{r plotting, eval=FALSE}
 # Pngs of trees and text output are in the "output/" directory
 
 # Add snv groups to the Seurat object
@@ -308,10 +314,12 @@ control_celltypes <- c("Monocytes", "Macrophages", "NK cells", "NK_cell")
 
 # Figure out which clusters are more than 50% control celltypes
 normal_clusters <-
-    match_celltype_clusters(sobject = two_sobj,
-                            normal_celltypes = control_celltypes,
-                            cluster_col = "used_clusters",
-                            celltype_col = "cell_type")
+    match_celltype_clusters(
+        sobject = two_sobj,
+        normal_celltypes = control_celltypes,
+        cluster_col = "used_clusters",
+        celltype_col = "cell_type"
+    )
 
 two_sobj <-
     label_tumor_cells(
@@ -331,3 +339,192 @@ DimPlot(
 ) +
     NoLegend()
 ```
+
+## Calculate the which variants divide tumors from normal cells
+```{r var_var, eval=FALSE}
+group_strings <-
+    read_tsv(
+        "output/test_two_sobj_5_groups.txt",
+        col_names = c("cluster", "all_groups", "top_groups"),
+        show_col_types = FALSE
+    ) %>%
+    group_by(top_groups) %>%
+    summarize(groups = paste(cluster, collapse = ",")) %>%
+    pull(groups, name = top_groups)
+
+calc_variant_variability(
+    merged_bcf_file = "output/mergedtest_two_sobj_c5.bcf",
+    log_base = "output/merged_c5_slurm_log_var",
+    temp_dir = "output/temp",
+    output_file = "output/merged_c5_variable_variants.tsv",
+    group_1 = group_strings["top_lvl_group0"], # Group_1 is tumor
+    group_2 = group_strings["top_lvl_group1"],
+    other_job_header_options = c("--time=05:00:00"),
+    other_batch_options = c( # Just here as examples of things you might put
+        "module purge",
+        "module load miniforge3",
+        'eval "$(conda shell.bash hook)"'
+    ),
+    job_scheduler = "slurm"
+)
+
+# Just to show that there are results. Not much to actually learn from this plot
+read_tsv(
+    "output/merged_c5_variable_variants.tsv",
+    show_col_types = FALSE
+) %>%
+    filter(cross_minus_within_dist > 0.5) %>%
+    ggplot(
+        aes(
+            x = pos,
+            y = chr,
+            size = cross_minus_within_dist,
+            color = cross_minus_within_dist,
+            alpha = cross_minus_within_dist
+        )
+    ) +
+    geom_point()
+```
+
+
+## Try calling variants from individual cells, but only on the important variant positions
+```{r cell_vars, eval=FALSE}
+s_59_cell_barcodes <-
+    two_sobj %>%
+    subset(sample_name == "S0059") %>%
+    colnames() %>%
+    str_remove("S0059_") %>%
+    paste(collapse = " ")
+
+# I should filter variable_variants_file before I give it to call_variants_single_cell
+
+call_variants_single_cell(
+    bam_to_use = "/home/gdrobertslab/lab/Counts_2/S0059/possorted_genome_bam.bam",
+    variable_variants_file = "output/merged_c5_variable_variants.tsv",
+    cell_barcodes = s_59_cell_barcodes,
+    output_file = "cell_variant_calls_S059.tsv",
+    min_depth = 3,
+    variant_diff_cutoff = 1,
+    ploidy = "GRCh38",
+    ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+    job_base = "cell_vars",
+    log_base = "slurm_cell_vars",
+    temp_dir = "output/temp/cell_vars_59",
+    submit = TRUE,
+    other_job_header_options = c("--time=05:00:00"),
+    other_batch_options = c( # Just here as examples of things you might put
+        "module purge",
+        "module load miniforge3",
+        'eval "$(conda shell.bash hook)"'
+    )
+)
+```
+
+## Work in progress section on variable variants
+```{r, eval=FALSE}
+count_to_call <-
+    c(
+        "0" = "0/0",
+        "1" = "0/1",
+        "2" = "1/1"
+    )
+
+genotype_info <-
+    read_tsv(
+        "output/merged_c5_variable_variants.tsv",
+        show_col_types = FALSE
+    ) %>%
+    filter(cross_minus_within_dist >= 1) %>%
+    select(
+        -group_1_within_dist,
+        -group_2_within_dist,
+        -cross_group_dist,
+        -within_groups_mean_dist,
+        -cross_minus_within_dist
+    ) %>%
+    mutate(
+        mean_group_1_alts = round(mean_group_1_alts),
+        mean_group_2_alts = round(mean_group_2_alts),
+        group_1_genotype = count_to_call[as.character(mean_group_1_alts)],
+        group_2_genotype = count_to_call[as.character(mean_group_2_alts)],
+        pos = paste(chr, pos, sep = "_")
+    )
+
+tumor_genotype_profile <-
+    genotype_info %>%
+    pull(group_1_genotype, name = pos)
+
+normal_genotype_profile <-
+    genotype_info %>%
+    pull(group_2_genotype, name = pos)
+
+single_call_meta <-
+    read_tsv(
+        "cell_variant_calls_S059.tsv",
+        show_col_types = FALSE
+    ) %>%
+    mutate(
+        pos = paste(chr, pos, sep = "_"),
+        tumor_genotype = tumor_genotype_profile[pos],
+        normal_genotype = normal_genotype_profile[pos],
+        call = if_else(
+            call == 1,
+            "0/1",
+            call
+        )
+    ) %>%
+    mutate(
+        call = if_else(
+            call == 0,
+            "0/0",
+            call
+        )
+    ) %>%
+    select(-chr, -ref, -alt) %>%
+    group_by(cell_barcode) %>%
+    mutate(
+        is_tumor = call == tumor_genotype,
+        is_normal = call == normal_genotype,
+        tumor_call_sum = sum(is_tumor),
+        normal_call_sum = sum(is_normal),
+        prop_tumor_call = tumor_call_sum / n(),
+        cell_barcode = paste0("S0059_", cell_barcode)
+    ) %>%
+    ungroup() %>%
+    select(-tumor_genotype, -normal_genotype, -call, -is_normal) %>%
+    pivot_wider(
+        id_cols = c(cell_barcode, tumor_call_sum, normal_call_sum, prop_tumor_call),
+        names_from = pos,
+        values_from = is_tumor
+    ) %>%
+    column_to_rownames("cell_barcode")
+
+two_sobj2 <- AddMetaData(two_sobj, single_call_meta)
+two_sobj2$has_calls <- !is.na(two_sobj2$prop_tumor_call)
+two_sobj2$prop_tumor_call[!two_sobj2$has_calls] <- 0.1
+
+FeaturePlot(
+    subset(two_sobj2, sample_name == "S0059"),
+    features = colnames(single_call_meta)[3],
+    order = FALSE,
+    ncol = 1,
+    pt.size = 2,
+    alpha = 0.8,
+    split.by = "has_calls"
+)
+
+DimPlot(
+    two_sobj2,
+    group.by = c(
+        #"chr6_32579023",
+        #"chr19_1106616",
+        #"chr21_39342552",
+        "chrM_15323"
+    ),
+    pt.size = 2,
+    alpha = 0.5,
+    ncol = 2,
+    order = TRUE
+)
+```
+

@@ -329,7 +329,7 @@ call_snps <- function(cellid_bam_table,
                        function(this_min_depth) {
 
         replace_tibble_snp <-
-            dplyr::tribble(
+            tibble::tribble(
                 ~find,                          ~replace,
                 "placeholder_account",          account,
                 "placeholder_job_log",          file.path(
@@ -449,7 +449,7 @@ merge_bcfs <- function(bcf_in_dir,
     # use template to merge bcfs and write out a distance matrix, substituting
     # out the placeholder fields
     replace_tibble_merge <-
-        dplyr::tribble(
+        tibble::tribble(
             ~find,                          ~replace,
             "placeholder_account",          account,
             "placeholder_job_log",          file.path(
@@ -546,7 +546,7 @@ group_clusters_by_dist <- function(
         make_header_other_string(other_job_header_options, job_scheduler)
 
     replace_tibble_dist <-
-        dplyr::tribble(
+        tibble::tribble(
             ~find,                              ~replace,
             "placeholder_account",              account,
             "placeholder_job_log",              paste0(

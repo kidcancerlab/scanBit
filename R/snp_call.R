@@ -83,6 +83,17 @@ get_snp_tree <- function(cellid_bam_table,
                          job_scheduler = "slurm") {
     check_cellid_bam_table(cellid_bam_table)
 
+    # Confirm that required arguments are provided
+    if (missing(output_dir)) {
+        stop("output_dir argument is required")
+    }
+    if (missing(ploidy)) {
+        stop("ploidy argument is required")
+    }
+    if (missing(ref_fasta)) {
+        stop("ref_fasta argument is required")
+    }
+
     ## Check that the conda command is available
     check_cmd("conda")
     # Check that conda environment scanBit_xkcd_1337 exists, and if not,

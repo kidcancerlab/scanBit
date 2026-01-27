@@ -1,3 +1,9 @@
+# scanBit 0.8.0
+- Updated README with info on environment setup and usage.
+- Updated vignette with detailed instructions on environment setup.
+- Changed file extension for printing trees to .pdf with argument to specify what is wanted.
+- Added some code to identify which variants are most variant across specified populations of cells. I also put in code to call variants at just these locations across individual cells to speed up the process. Just a word of warning, this is still fairly slow and most of your cells will lack calls at many of these positions due to low coverage.
+
 # scanBit 0.7.1
 - Fixed a bug with vcfToMatrix.py that I found immediately after the last release. I had moved the argparse code and `args` was no longer global.
 

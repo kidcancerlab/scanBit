@@ -31,27 +31,20 @@ conda config --set channel_priority strict
 conda create -y -n scanBit_xkcd_1337 python=3.12
 conda activate scanBit_xkcd_1337
 
+## scanBit_version _must_ match the version of scanBit you have installed in R
 conda env config vars set scanBit_version=0.7.1
 
 conda install -y 'samtools>=1.13' bcftools pysam numpy pandas matplotlib scipy
 ```
-
-
-### To do
-
-  * Make arguments inherit documentation from other functions instead of re-typing them
-  * Vignette
-  * Try out snp calling: https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1863-4
-
-
----
+## Usage
+See the vignette for detailed usage instructions:
+https://github.com/kidcancerlab/scanBit/blob/master/vignettes/basics.Rmd
 
 ## Errors
-> If you run into any errors, please run the following commands and send the
-> output to me along with the error messages produced.
->
-> ```
-> traceback()
-> sessionInfo()
-> ```
->
+If you run into any errors, please run the following commands and send the
+output to me along with the error messages produced.
+
+```
+traceback()
+sessionInfo()
+```

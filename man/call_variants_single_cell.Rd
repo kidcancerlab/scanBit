@@ -47,8 +47,9 @@ variable_variants_file. Any variant with cross_minus_within_dist greater
 or equal to the cutoff will be used.}
 
 \item{ploidy}{Either a file path to a ploidy file, or a string indicating
-the ploidy. #### PUT EXAMPLES HERE #### For ploidy file format see bcftools
-call --ploidy-file option description here:
+the ploidy. "GRCh37" is hg19, "GRCh38" is hg38, "mm10" is mm10.
+"mm10_hg19" and "mm10_hg38" are our custom mixed species reference with
+species prefixes on chromosomes. --ploidy-file option description here:
 "https://samtools.github.io/bcftools/bcftools.html"}
 
 \item{job_base}{The prefix to use with the sbatch job file.}

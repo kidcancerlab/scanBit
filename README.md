@@ -48,3 +48,6 @@ output to me along with the error messages produced.
 traceback()
 sessionInfo()
 ```
+## To do:
+- Add in the option to print out a matrix showing how many variants are being used for hierarchical clustering
+    - Update vignette with usage for this

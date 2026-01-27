@@ -1,3 +1,6 @@
+# scanBit 1.0.0
+- Setting version to 1.0.0 since it's not pre-release anymore.
+
 # scanBit 0.8.0
 - Updated README with info on environment setup and usage.
 - Updated vignette with detailed instructions on environment setup.

@@ -59,6 +59,8 @@ Then start over with confirm_conda_env().
 I'm reading in a pre-made Seurat object with two merged samples in it.
 
 You don't necessarily need to assign cell types, but I'm going to use it downstream so I'm doing it here.
+
+Replace the placeholder input/directory/here/ with the path to your data.
 ```{r read_data, eval=FALSE}
 # This is a Seurat object with two patient osteosarcoma mets from one patient
 my_input_directory <- "input/directory/here/"
@@ -103,8 +105,11 @@ The `cell_barcode` column should contain the cell barcodes from the Seurat objec
 The `bam_file` column should contain the absolute path to the BAM file for each sample. All cells from a single sample should share the same bam file.
 
 The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces in your cell_group column contents.
+
+Replace the placeholder bam/directory/here/ with the path to your bam files.
 ```{r make_cbt, eval=FALSE}
 my_bam_directory <- "bam/directory/here/"
+
 cell_barcode_table <-
     two_sobj@meta.data %>%
     rownames_to_column("cell_barcode") %>%
@@ -190,6 +195,8 @@ The ploidy argument takes one of:
 - The path to a custom ploidy file
     - See https://samtools.github.io/bcftools/bcftools.html#call for how to construct this
 
+
+Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the path to your hg38 reference fasta.
 ```{r slurm_scanbit, eval=FALSE}
 start_time <- Sys.time()
 hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
@@ -247,7 +254,10 @@ The `sge_q` option is the queue you want to use, and the `sge_parallel_environme
 
 So in in this example, you would add `sge_parallel_environment = "smp"`.
 
+Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the path to your hg38 reference.
 ```{r sge_scanbit, eval=FALSE}
+hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
+
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -255,7 +265,7 @@ snp_tree <-
         ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+        ref_fasta = hg38_ref_fasta,
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
         min_snvs_per_cluster = 250,
@@ -281,6 +291,8 @@ snp_tree <-
 
 ## Run using no job scheduler, just bash scripts
 If you are not on a distributed computational environment, you can also just run everything locally using bash scripts. Be aware that this will take longer as you are limited in how many clusters you can analyze in parallel. RAM usage should be reasonable, around 0.1G per cpu.
+
+Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the path to your hg38 reference.
 ```{r bash_scanbit, eval=FALSE}
 hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
@@ -310,6 +322,8 @@ snp_tree <-
 
 
 ## Adding the results back into your Seurat object and plotting them
+
+The resulting files in output/ include files named *_#_groups.txt where # is the min_depth parameter used. These files contain the group assignments for each cluster.
 ```{r plotting, eval=FALSE}
 # Pngs of trees and text output are in the "output/" directory
 

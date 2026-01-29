@@ -12,4 +12,4 @@ dependencies:
   - samtools[version='>=1.13']
   - scipy
 variables:
-  scanBit_version: 1.0.0
+  scanBit_version: 1.0.1

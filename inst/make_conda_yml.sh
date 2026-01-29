@@ -12,7 +12,7 @@ conda config --set channel_priority strict
 conda create -y -n scanBit_xkcd_1337 python=3.12
 conda activate scanBit_xkcd_1337
 
-conda env config vars set scanBit_version=1.0.0
+conda env config vars set scanBit_version=1.0.1
 
 conda install -y 'samtools>=1.13' bcftools pysam numpy pandas matplotlib scipy
 

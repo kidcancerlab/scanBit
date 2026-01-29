@@ -1,3 +1,6 @@
+# scanBit 1.0.1
+- Updated the vignette to remove paths to files on my computer and replace with placeholders.
+
 # scanBit 1.0.0
 - Setting version to 1.0.0 since it's not pre-release anymore.
 

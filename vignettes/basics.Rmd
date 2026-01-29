@@ -61,7 +61,8 @@ I'm reading in a pre-made Seurat object with two merged samples in it.
 You don't necessarily need to assign cell types, but I'm going to use it downstream so I'm doing it here.
 ```{r read_data, eval=FALSE}
 # This is a Seurat object with two patient osteosarcoma mets from one patient
-two_sobj <- qs::qread("/home/gdrobertslab/mvc002/analyses/roberts/dev/testSnps/output/patient_met_1/two_sobj.qs")
+my_input_directory <- "input/directory/here/"
+two_sobj <- qs::qread(file.path(my_input_directory, "two_sobj.qs"))
 
 two_sobj$cell_group <-
     paste0(two_sobj$sample_name, "_", two_sobj$seurat_clusters)
@@ -103,6 +104,7 @@ The `bam_file` column should contain the absolute path to the BAM file for each 
 
 The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces in your cell_group column contents.
 ```{r make_cbt, eval=FALSE}
+my_bam_directory <- "bam/directory/here/"
 cell_barcode_table <-
     two_sobj@meta.data %>%
     rownames_to_column("cell_barcode") %>%
@@ -110,8 +112,8 @@ cell_barcode_table <-
     mutate(
         bam_file = if_else(
             sample_name == "S0058",
-            "/home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam",
-            "/home/gdrobertslab/lab/Counts_2/S0059/possorted_genome_bam.bam"
+            file.path(my_bam_directory, "S0058/possorted_genome_bam.bam"),
+            file.path(my_bam_directory, "S0059/possorted_genome_bam.bam")
         ),
         # I merged samples, so cell barcodes are prepended by the sample names
         # I'm trimming the cell barcodes to match those in the bam file
@@ -126,26 +128,26 @@ Example of what my cell_barcode_table looks like
 # A tibble: 20 x 3
    cell_barcode       bam_file                                                       cell_group
    <chr>              <chr>                                                          <chr>
- 1 AAACCCAAGAAATCCA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
- 2 AAACCCAAGCCACCGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
- 3 AAACCCACAGCAGTGA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
- 4 AAACCCAGTCCTGGGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
- 5 AAACGAAAGCACTCGC-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
- 6 AAACGAAAGCCGAATG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_11
- 7 AAACGAACAGGTAGTG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
- 8 AAACGAAGTCTGTGAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_6
- 9 AAACGAATCAGCTAGT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_12
-10 AAACGAATCATTTGCT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
-11 AAACGAATCCACTGAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
-12 AAACGCTAGATGCTAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
-13 AAACGCTCAACGGCCT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
-14 AAACGCTGTCCGATCG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
-15 AAAGAACCAGCAGTTT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_4
-16 AAAGAACCAGTTCCAA-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_6
-17 AAAGAACGTATCGCAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
-18 AAAGAACGTTTCAGAC-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_9
-19 AAAGAACTCGGTCTGG-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
-20 AAAGGATCAAGACAAT-1 /home/gdrobertslab/lab/Counts_2/S0058/possorted_genome_bam.bam S0058_1
+ 1 AAACCCAAGAAATCCA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+ 2 AAACCCAAGCCACCGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+ 3 AAACCCACAGCAGTGA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+ 4 AAACCCAGTCCTGGGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+ 5 AAACGAAAGCACTCGC-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
+ 6 AAACGAAAGCCGAATG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_11
+ 7 AAACGAACAGGTAGTG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+ 8 AAACGAAGTCTGTGAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_6
+ 9 AAACGAATCAGCTAGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_12
+10 AAACGAATCATTTGCT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
+11 AAACGAATCCACTGAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
+12 AAACGCTAGATGCTAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+13 AAACGCTCAACGGCCT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
+14 AAACGCTGTCCGATCG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
+15 AAAGAACCAGCAGTTT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
+16 AAAGAACCAGTTCCAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_6
+17 AAAGAACGTATCGCAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+18 AAAGAACGTTTCAGAC-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
+19 AAAGAACTCGGTCTGG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
+20 AAAGGATCAAGACAAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
 ```
 
 ### Run scanBit
@@ -190,6 +192,7 @@ The ploidy argument takes one of:
 
 ```{r slurm_scanbit, eval=FALSE}
 start_time <- Sys.time()
+hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
 snp_tree <-
     get_snp_tree(
@@ -198,7 +201,7 @@ snp_tree <-
         ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+        ref_fasta = hg38_ref_fasta,
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
         min_snvs_per_cluster = 250,
@@ -279,6 +282,8 @@ snp_tree <-
 ## Run using no job scheduler, just bash scripts
 If you are not on a distributed computational environment, you can also just run everything locally using bash scripts. Be aware that this will take longer as you are limited in how many clusters you can analyze in parallel. RAM usage should be reasonable, around 0.1G per cpu.
 ```{r bash_scanbit, eval=FALSE}
+hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
+
 snp_tree <-
     get_snp_tree(
         cellid_bam_table = cell_barcode_table,
@@ -286,7 +291,7 @@ snp_tree <-
         ploidy = "GRCh38",
         output_dir = "output",
         output_base_name = "test_two_sobj",
-        ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+        ref_fasta = hg38_ref_fasta,
         min_depth = c(5, 10, 20),
         job_base = "two_sobj",
         min_snvs_per_cluster = 250,
@@ -424,16 +429,18 @@ s_59_cell_barcodes <-
     paste(collapse = " ")
 
 # I should filter variable_variants_file before I give it to call_variants_single_cell
+bam_directory <- "bam/directory/here/"
+hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
 call_variants_single_cell(
-    bam_to_use = "/home/gdrobertslab/lab/Counts_2/S0059/possorted_genome_bam.bam",
+    bam_to_use = file.path(bam_directory, "S0059/possorted_genome_bam.bam"),
     variable_variants_file = "output/merged_c5_variable_variants.tsv",
     cell_barcodes = s_59_cell_barcodes,
     output_file = "cell_variant_calls_S059.tsv",
     min_depth = 3,
     variant_diff_cutoff = 1,
     ploidy = "GRCh38",
-    ref_fasta = "/home/gdrobertslab/lab/GenRef/10x-hg38/fasta/genome.fa",
+    ref_fasta = hg38_ref_fasta,
     job_base = "cell_vars",
     log_base = "slurm_cell_vars",
     temp_dir = "output/temp/cell_vars_59",
@@ -520,7 +527,12 @@ single_call_meta <-
     ungroup() %>%
     select(-tumor_genotype, -normal_genotype, -call, -is_normal) %>%
     pivot_wider(
-        id_cols = c(cell_barcode, tumor_call_sum, normal_call_sum, prop_tumor_call),
+        id_cols = c(
+            cell_barcode,
+            tumor_call_sum,
+            normal_call_sum,
+            prop_tumor_call
+        ),
         names_from = pos,
         values_from = is_tumor
     ) %>%

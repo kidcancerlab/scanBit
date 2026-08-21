@@ -97,6 +97,9 @@ From: rocker/r-ver:4.6.0
     apt-get clean
     rm -rf /var/lib/apt/lists/*
 
+    # add miniforge to path here so that we can use it to install the conda environment
+    export PATH=/opt/miniforge/bin:/usr/local/bin:$PATH
+
     ####### 4. Install scanBit R package
     Rscript -e 'install.packages("pak", repos = "https://cloud.r-project.org")'
     Rscript -e 'pak::pkg_install("kidcancerlab/scanBit")'

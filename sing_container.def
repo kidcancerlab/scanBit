@@ -45,12 +45,6 @@ From: rocker/r-ver:4.6.0
         less \
         parallel
 
-    ####### 1. Install scanBit R package
-    Rscript -e 'install.packages("pak", repos = "https://cloud.r-project.org")'
-    Rscript -e 'pak::pkg_install("kidcancerlab/scanBit")'
-
-    Rscript -e 'scanBit::confirm_conda_env()'
-
     ####### 1. Install rv
     # Download the release archive and extract it into /opt
     wget https://github.com/A2-ai/rv/releases/download/${RV_VERSION}/rv-${RV_VERSION}-x86_64-unknown-linux-gnu.tar.gz
@@ -102,6 +96,13 @@ From: rocker/r-ver:4.6.0
     # Clean up APT
     apt-get clean
     rm -rf /var/lib/apt/lists/*
+
+    ####### 4. Install scanBit R package
+    Rscript -e 'install.packages("pak", repos = "https://cloud.r-project.org")'
+    Rscript -e 'pak::pkg_install("kidcancerlab/scanBit")'
+
+    Rscript -e 'scanBit::confirm_conda_env()'
+
 
 %environment
     # Ensure quarto, rv, and conda/python binaries are in the path

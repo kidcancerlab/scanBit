@@ -82,13 +82,26 @@ conda_env_exists <- function() {
 #' @noRd
 right_conda_version <- function() {
     if (conda_env_exists()) {
-        package_version <- utils::packageVersion("scanBit")
+        package_version <- utils::packageVersion("scanBit") |>
+            as.character()
+
         conda_version <-
-            system(
-                "conda env config vars list -n scanBit_xkcd_1337",
-                intern = TRUE
-            ) |>
-            stringr::str_remove("scanBit_version = ")
+            tryCatch(
+                system(
+                    "conda env config vars list -n scanBit_xkcd_1337 | grep '^scanBit_version ='",
+                    intern = TRUE
+                ) |>
+                    stringr::str_remove("scanBit_version = "),
+                error = function(e) {
+                    message("Conda environment is not set up correctly.")
+                    return("wrong version")
+                },
+                warning = function(w) {
+                    message("Conda environment is not set up correctly.")
+                    return("wrong version")
+                }
+            )
+
         return(conda_version == package_version)
     }
     return(FALSE)

@@ -46,10 +46,10 @@ From: rocker/r-ver:4.6.0
         parallel
 
     ####### 1. Install scanBit R package
-    Rscript -e "install.packages(c("pak", "devtools"))"
-    Rscript -e "devtools::install_github("kidcancerlab/scanBit")"
+    Rscript -e 'install.packages("pak", repos = "https://cloud.r-project.org")'
+    Rscript -e 'pak::pkg_install("kidcancerlab/scanBit")'
 
-    Rscript -e "scanBit::confirm_conda_env()"
+    Rscript -e 'scanBit::confirm_conda_env()'
 
     ####### 1. Install rv
     # Download the release archive and extract it into /opt

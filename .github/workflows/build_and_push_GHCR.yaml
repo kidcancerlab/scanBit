@@ -1,0 +1,81 @@
+---
+name: Build and Push Apptainer Image to GHCR
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - '*.def'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed-files.outputs.all_changed_files }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get changed .def files
+        id: changed-files
+        uses: tj-actions/changed-files@v47
+        with:
+          files: '*.def'
+          matrix: true
+
+  build-and-push:
+    needs: setup
+    if: ${{ needs.setup.outputs.matrix != '[]' && needs.setup.outputs.matrix != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        def_file: ${{ fromJson(needs.setup.outputs.matrix) }}
+    env:
+      REGISTRY: ghcr.io
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Determine image name
+        run: |
+          IMAGE_BASE=$(basename "${{ matrix.def_file }}" .def)
+          echo "IMAGE_NAME=${IMAGE_BASE}" >> "$GITHUB_ENV"
+
+      - name: Install Apptainer
+        uses: eWaterCycle/setup-apptainer@v2
+        with: 
+          apptainer-version: 1.3.6
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | apptainer remote login \
+              -u "${{ github.actor }}" \
+              --password-stdin "oras://${{ env.REGISTRY }}"
+
+      - name: Build Apptainer Image
+        run: |
+          apptainer build "${{ env.IMAGE_NAME }}.sif" "${{ matrix.def_file }}"
+
+      - name: Push to GHCR
+        run: |
+          # Convert owner name to lowercase for the registry URL
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" \
+            | tr '[:upper:]' '[:lower:]')
+          IMAGE_LOWER=$(echo "${{ env.IMAGE_NAME }}" \
+            | tr '[:upper:]' '[:lower:]')
+          
+          apptainer push "${{ env.IMAGE_NAME }}.sif" \
+            "oras://${{ env.REGISTRY }}/${OWNER_LOWER}/${IMAGE_LOWER}:latest"
+
+          # Tag the container to make it reproducible
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          apptainer push "${{ env.IMAGE_NAME }}.sif" \
+            "oras://${{ env.REGISTRY }}/${OWNER_LOWER}/${IMAGE_LOWER}:${SHORT_SHA}"

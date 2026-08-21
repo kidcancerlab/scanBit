@@ -3,7 +3,7 @@ name: Build and Push Apptainer Image to GHCR
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
     paths:
       - '*.def'
   workflow_dispatch:

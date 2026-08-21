@@ -1,0 +1,126 @@
+Bootstrap: docker
+From: rocker/r-ver:4.6.0
+
+%post
+    # Version variables for easy updates
+    RV_VERSION="v0.21.0"
+    QUARTO_VERSION="1.9.37"
+    MINIFORGE_VERSION="26.3.2-2"
+
+    # Update and install system dependencies
+    apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        wget \
+        ca-certificates \
+        tar \
+        git \
+        emacs \
+        libuv1-dev \
+        libgdal-dev \
+        libgeos-dev \
+        libproj-dev \
+        sqlite3 \
+        libsqlite3-dev \
+        libcairo2-dev \
+        cmake \
+        libnode-dev \
+        libx11-dev \
+        libglpk-dev \
+        libabsl-dev \
+        libfontconfig1-dev \
+        libfreetype6-dev \
+        libfribidi-dev \
+        libharfbuzz-dev \
+        libudunits2-dev \
+        libcurl4-openssl-dev \
+        libxml2-dev \
+        libssl-dev \
+        zlib1g-dev \
+        libbz2-dev \
+        liblzma-dev \
+        patch \
+        libhdf5-openmpi-dev \
+        hdf5-tools \
+        libmagick++-dev \
+        less \
+        parallel
+
+    ####### 1. Install scanBit R package
+    Rscript -e "install.packages(c("pak", "devtools"))"
+    Rscript -e "devtools::install_github("kidcancerlab/scanBit")"
+
+    Rscript -e "scanBit::confirm_conda_env()"
+
+    ####### 1. Install rv
+    # Download the release archive and extract it into /opt
+    wget https://github.com/A2-ai/rv/releases/download/${RV_VERSION}/rv-${RV_VERSION}-x86_64-unknown-linux-gnu.tar.gz
+
+    mkdir -p /opt/rv/${RV_VERSION}
+    tar xzf \
+        rv-${RV_VERSION}-x86_64-unknown-linux-gnu.tar.gz \
+        -C /opt/rv/${RV_VERSION}
+
+    # Link the binary to /usr/local/bin
+    ln -s \
+        /opt/rv/${RV_VERSION}/rv \
+        /usr/local/bin/rv
+
+    # Clean up
+    rm rv-${RV_VERSION}-x86_64-unknown-linux-gnu.tar.gz
+
+    # Define cache location so that we can bind a host directory to it for caching between runs
+    mkdir -p /cache/rv
+
+    ####### 2. Install Quarto
+    # Download, extract to /opt, and create a symlink to make it available in the PATH
+    wget https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz
+    
+    mkdir -p /opt/quarto/${QUARTO_VERSION}
+    tar xzf \
+        quarto-${QUARTO_VERSION}-linux-amd64.tar.gz \
+        -C /opt/quarto/${QUARTO_VERSION} \
+        --strip-components=1
+    
+    # Link the binary to a standard PATH location
+    ln -s \
+        /opt/quarto/${QUARTO_VERSION}/bin/quarto \
+        /usr/local/bin/quarto
+
+    # Symlink explicitly to Quarto's bundled pandoc so it can be used natively
+    ln -s \
+        /opt/quarto/"${QUARTO_VERSION}"/bin/tools/x86_64/pandoc \
+        /usr/local/bin/pandoc
+
+    # Clean up
+    rm quarto-${QUARTO_VERSION}-linux-amd64.tar.gz
+
+    ####### 3. Install Miniforge (includes Python and Conda/Mamba)
+    wget https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}/Miniforge3-${MINIFORGE_VERSION}-Linux-x86_64.sh
+    bash Miniforge3-${MINIFORGE_VERSION}-Linux-x86_64.sh -b -p /opt/miniforge
+    rm Miniforge3-${MINIFORGE_VERSION}-Linux-x86_64.sh
+
+    # Clean up APT
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    # Ensure quarto, rv, and conda/python binaries are in the path
+    export LC_ALL=C
+    export PATH=/opt/miniforge/bin:/usr/local/bin:$PATH
+    export RV_CACHE_DIR=/cache/rv
+
+%test
+    # Verify installations
+    R --version
+    rv --version
+    quarto --version
+    pandoc --version
+    python --version
+    conda --version
+
+%help
+    This container includes:
+    - R (rocker/r-ver:4.6.0)
+    - rv (R package manager)
+    - Quarto
+    - Miniforge (Python/Conda/Mamba)

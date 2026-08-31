@@ -1,0 +1,94 @@
+
+## Make up a Seurat object with B6 and BALBC cells, then strip it down so I can save off a tiny file
+```{r}
+#| eval: false
+library(Seurat)
+library(rrrSingleCellUtils)
+library(tidyverse)
+merged_mouse <-
+  merge(
+    qs::qread("../../../24_validate_snvs/output/seurat_objects/individual/S0066_mouse.qs"),
+    qs::qread("../../../24_validate_snvs/output/seurat_objects/individual/S0074_mouse.qs")
+  ) %>%
+  JoinLayers() %>%
+  process_seurat()
+
+merged_mouse@graphs <- list()
+merged_mouse@assays$RNA@layers$counts <- NULL
+merged_mouse@assays$RNA@layers$data <- NULL
+merged_mouse@assays$RNA@layers$scale.data <- NULL
+merged_mouse@neighbors <- list()
+merged_mouse@graphs$RNA_nn <- NULL
+merged_mouse@graphs$RNA_snn <- NULL
+
+merged_mouse@meta.data <-
+  merged_mouse@meta.data %>%
+  select(individ_clusters, Sample_ID, cell_barcode)
+
+format(object.size(merged_mouse), units = "Mb")
+
+qs2::qs_save(merged_mouse, "b6_balbc_sobj.qs2")
+```
+
+## Make up cell barcode table
+```{r make_cbt}
+#| eval: false
+cell_barcode_table <-
+  merged_mouse@meta.data %>%
+  as_tibble() %>%
+  mutate(
+    bam_file = if_else(
+      Sample_ID == "S0066",
+      "B6_chr19_scRNA.bam",
+      "BALBc_chr19_scRNA.bam"
+    ),
+    strain = if_else(
+      Sample_ID == "S0066",
+      "B6",
+      "BALBc"
+    ),
+    cell_group = paste0(strain, "_cluster_", individ_clusters)
+  ) %>%
+  select(cell_barcode, bam_file, cell_group)
+
+qs2::qs_save(cell_barcode_table, "cell_barcode_table.qs2")
+```
+
+## Run scanBit on the data
+```{r}
+hg38_ref_fasta <- "mm10_chr19_plus.fa"
+
+snp_tree <-
+  get_snp_tree(
+    cellid_bam_table = cell_barcode_table,
+    temp_dir = "test/temp",
+    ploidy = "mm10",
+    output_dir = "test",
+    output_base_name = "test_chr19",
+    ref_fasta = hg38_ref_fasta,
+    min_depth = 10,
+    job_base = "two_sobj",
+    min_snvs_per_cluster = 100,
+    max_prop_missing_at_site = 0.75,
+    cleanup = TRUE,
+    job_scheduler = "bash",
+    submit = TRUE,
+    other_batch_options = c( # Just here as examples of things you might put
+      "module purge",
+      "module load miniforge3",
+      'eval "$(conda shell.bash hook)"'
+    )
+  )
+```
+
+## Data for figshare
+data/b6_balbc_sobj.qs2
+data/cell_barcode_table.qs2
+data/mm10_chr19_plus.fa
+data/mm10_chr19_plus.fa.fai
+data/BALBc_chr19_scRNA.bam
+data/BALBc_chr19_scRNA.bam.bai
+data/B6_chr19_scRNA.bam
+data/B6_chr19_scRNA.bam.bai
+data/test/mergedtest_chr19_c10.bcf
+data/test/mergedtest_chr19_c10.bcf.csi

@@ -9,6 +9,10 @@
 #'
 #' @noRd
 download_demo_data <- function(data_loc = find.package("scanBit")) {
+  if (!dir.exists(data_loc)) {
+    dir.create(data_loc, recursive = TRUE)
+  }
+
   zip_file <- file.path(data_loc, "scanBitTestingData.zip")
 
   download.file(
@@ -28,13 +32,12 @@ download_demo_data <- function(data_loc = find.package("scanBit")) {
 #' downloaded from https://doi.org/10.6084/m9.figshare.33399454.
 #'
 #' @export
-prep_demo_data <- function() {
-  download_demo_data()
-  package_location <- find.package("scanBit")
+prep_demo_data <- function(data_loc = find.package("scanBit")) {
+  download_demo_data(data_loc = data_loc)
 
-  c_b_t_file <- file.path(package_location, "cell_barcode_table.qs2")
+  c_b_t_file <- file.path(data_loc, "cell_barcode_table.qs2")
 
   qs2::qs_read(c_b_t_file) |>
-    dplyr::mutate(bam_file = paste0(package_location, "/", bam_file)) |>
+    dplyr::mutate(bam_file = paste0(data_loc, "/", bam_file)) |>
     qs2::qs_save(c_b_t_file)
 }

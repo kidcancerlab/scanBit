@@ -4,8 +4,7 @@
 #' directory. Data can be found here:
 #' https://doi.org/10.6084/m9.figshare.33399454
 #'
-#' @param data_loc Directory in which to download and extract the demo data.
-#'   Defaults to the installed scanBit package directory.
+#' @inheritParams prep_demo_data
 #'
 #' @noRd
 download_demo_data <- function(data_loc = find.package("scanBit")) {
@@ -30,6 +29,8 @@ download_demo_data <- function(data_loc = find.package("scanBit")) {
 #' Downloads the demo data and updates the cell barcode table so its BAM file
 #' paths are relative to the installed scanBit package directory. Data are
 #' downloaded from https://doi.org/10.6084/m9.figshare.33399454.
+#'
+#' @param data_loc Directory in which to download and extract the demo data.
 #'
 #' @export
 prep_demo_data <- function(data_loc = find.package("scanBit")) {

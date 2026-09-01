@@ -4,10 +4,10 @@
 \alias{prep_demo_data}
 \title{Prepare Demo Data}
 \usage{
-prep_demo_data()
+prep_demo_data(data_loc = find.package("scanBit"))
 }
-\value{
-Invisibly returns `NULL`.
+\arguments{
+\item{data_loc}{Directory in which to download and extract the demo data.}
 }
 \description{
 Downloads the demo data and updates the cell barcode table so its BAM file

@@ -106,10 +106,6 @@ get_snp_tree <- function(cellid_bam_table,
     }
     message("Using temporary directory: ", temp_dir)
 
-
-    # Warn that this is going to take a while
-    message("Hold onto your hat and get a coffee, this will take a while.")
-
     bam_files <- unique(cellid_bam_table$bam_file)
 
     parallel::mclapply(

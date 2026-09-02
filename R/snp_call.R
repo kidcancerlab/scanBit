@@ -230,6 +230,15 @@ get_snp_tree <- function(cellid_bam_table,
                             tree_image_type
                         )
                     ),
+                n_comps_file = file.path(
+                    output_dir,
+                    paste0(
+                        output_base_name,
+                        "_",
+                        this_min_depth,
+                        "_n_comps.txt"
+                    )
+                ),
                 verbose = verbose,
                 job_base = job_base,
                 account = account,
@@ -511,6 +520,8 @@ merge_bcfs <- function(bcf_in_dir,
 #' @param min_snvs_per_cluster Numeric. Minimum number of SNVs per cluster.
 #'   Default is 500.
 #' @param tree_figure_file Character. Path to the output tree figure.
+#' @param n_comps_file Character. Path to the output file for number of
+#'   shared comparable SNVs between each pair of clusters.
 #'
 #' @return The result of the SLURM job submission.
 #'
@@ -531,6 +542,7 @@ group_clusters_by_dist <- function(
     n_bootstraps = 1000,
     bootstrap_cutoff = 0.99,
     tree_figure_file,
+    n_comps_file,
     verbose = TRUE,
     job_base = "job_dist",
     account = "gdrobertslab",
@@ -580,6 +592,7 @@ group_clusters_by_dist <- function(
                                                 ),
             "placeholder_n_bootstrap",          as.character(n_bootstraps),
             "placeholder_bootstrap_threshold",  as.character(bootstrap_cutoff),
+            "placeholder_n_comps_file",         n_comps_file,
             "placeholder_fig_file",             tree_figure_file,
             "placeholder_verbose",              verbose_setting,
             "placeholder_groups_output",        output_file

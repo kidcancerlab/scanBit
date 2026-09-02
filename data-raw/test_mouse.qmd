@@ -27,7 +27,7 @@ merged_mouse@meta.data <-
 
 format(object.size(merged_mouse), units = "Mb")
 
-qs2::qs_save(merged_mouse, "b6_balbc_sobj.qs2")
+saveRDS(merged_mouse, "b6_balbc_sobj.rds")
 ```
 
 ## Make up cell barcode table
@@ -51,7 +51,13 @@ cell_barcode_table <-
   ) %>%
   select(cell_barcode, bam_file, cell_group)
 
-qs2::qs_save(cell_barcode_table, "cell_barcode_table.qs2")
+write.table(
+  cell_barcode_table,
+  gzfile("cell_barcode_table.tsv.gz"),
+  quote = FALSE,
+  sep = "\t",
+  row.names = FALSE
+)
 ```
 
 ## Run scanBit on the data
@@ -82,8 +88,8 @@ snp_tree <-
 ```
 
 ## Data for figshare
-data/b6_balbc_sobj.qs2
-data/cell_barcode_table.qs2
+data/b6_balbc_sobj.rds
+data/cell_barcode_table.tsv.gz
 data/mm10_chr19_plus.fa
 data/mm10_chr19_plus.fa.fai
 data/BALBc_chr19_scRNA.bam

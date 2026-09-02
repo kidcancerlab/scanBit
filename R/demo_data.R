@@ -4,7 +4,7 @@
 #' directory. Data can be found here:
 #' https://doi.org/10.6084/m9.figshare.33399454
 #'
-#' @inheritParams prep_demo_data
+#' @param data_loc Directory in which to download and extract the demo data.
 #'
 #' @noRd
 download_demo_data <- function(data_loc = find.package("scanBit")) {
@@ -15,7 +15,7 @@ download_demo_data <- function(data_loc = find.package("scanBit")) {
   zip_file <- file.path(data_loc, "scanBitTestingData.zip")
 
   download.file(
-    url = "https://ndownloader.figshare.com/files/68075737",
+    url = "https://ndownloader.figshare.com/files/68141143",
     destfile = zip_file
   )
 
@@ -36,9 +36,17 @@ download_demo_data <- function(data_loc = find.package("scanBit")) {
 prep_demo_data <- function(data_loc = find.package("scanBit")) {
   download_demo_data(data_loc = data_loc)
 
-  c_b_t_file <- file.path(data_loc, "cell_barcode_table.qs2")
+  c_b_t_file <- file.path(data_loc, "cell_barcode_table.tsv.gz")
 
-  qs2::qs_read(c_b_t_file) |>
-    dplyr::mutate(bam_file = paste0(data_loc, "/", bam_file)) |>
-    qs2::qs_save(c_b_t_file)
+  data <-
+    read.delim(c_b_t_file, stringsAsFactors = FALSE) |>
+    dplyr::mutate(bam_file = paste0(data_loc, "/", bam_file))
+
+  write.table(
+    data,
+    gzfile(c_b_t_file),
+    quote = FALSE,
+    sep = "\t",
+    row.names = FALSE
+  )
 }

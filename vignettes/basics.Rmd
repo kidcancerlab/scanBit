@@ -75,11 +75,12 @@ The data includes:
 
 ```{r read_data, eval=FALSE}
 cell_barcode_table <-
-  qs2::qs_read(
+  read.delim(
     file.path(
       find.package("scanBit"),
-      "cell_barcode_table.qs2"
-    )
+      "cell_barcode_table.tsv"
+    ),
+    stringsAsFactors = FALSE
   )
 
 cell_barcode_table
@@ -260,7 +261,7 @@ snp_tree <-
 ```
 
 ## Run using singularity
-```{bash}
+```{bash getsing, eval=FALSE}
 singularity pull oras://ghcr.io/kidcancerlab/sing_container:4564f50
 
 singularity shell \
@@ -272,7 +273,7 @@ singularity shell \
 ```
 
 ### This is run inside the singularity container
-```{bash}
+```{bash singularity_run, eval=FALSE}
 cd /project
 ```
 

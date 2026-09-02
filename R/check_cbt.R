@@ -122,7 +122,7 @@ check_no_spaces <- function(text, label) {
 #'
 #' @noRd
 check_starts_with_letter <- function(text, label) {
-  if (!stringr::str_detect(text, "^[A-Za-z]")) {
+  if (any(!stringr::str_detect(text, "^[A-Za-z]"))) {
     stop(label, " should start with a letter")
   }
 }
@@ -134,7 +134,7 @@ check_starts_with_letter <- function(text, label) {
 #'
 #' @noRd
 check_str_safe_filename <- function(text, label) {
-  if (!stringr::str_detect(text, "^[A-Za-z0-9_\\-\\.]+$")) {
+  if (any(!stringr::str_detect(text, "^[A-Za-z0-9_\\-\\.]+$"))) {
     stop(
       label,
       " column should only contain letters, numbers, underscores, hyphens and ",

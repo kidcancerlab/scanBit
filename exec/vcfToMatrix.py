@@ -2,6 +2,7 @@ import argparse
 import sys
 import multiprocessing
 from itertools import repeat, chain
+from matplotlib.pylab import sample
 from pysam import VariantFile
 import numpy as np
 from scipy.cluster.hierarchy import linkage, dendrogram
@@ -55,6 +56,10 @@ def main():
                         type = int,
                         default = 1,
                         help = 'number of processes to use for parallel processing')
+    parser.add_argument('--dist_method',
+                        type = str,
+                        default = 'binary',
+                        help = 'distance method to use for calculating distance matrix. Options are "binary" or "euclidian"')
     parser.add_argument('--fig_width',
                         type = float,
                         default = 6,
@@ -76,7 +81,9 @@ def main():
         args.bcf,
         args.min_snvs_for_cluster,
         args.max_prop_missing,
-        args.processes)
+        args.processes,
+        args.dist_method
+    )
 
     prop_diff_matrix, n_comps_matrix = calc_proportion_dist_matrix(differences)
 
@@ -131,7 +138,8 @@ def main():
 def get_diff_matrix_from_bcf(bcf_file,
                              min_snvs_for_cluster,
                              max_prop_missing,
-                             threads):
+                             threads,
+                             dist_method):
     dist_key_dict = {'00':            0,
                      '01':            1,
                      '10':            1,
@@ -143,17 +151,30 @@ def get_diff_matrix_from_bcf(bcf_file,
     records = tuple(x for x in list(bcf_in.fetch()) if (len(x.alts) == 1))
     bcf_in.close()
 
-    # Precompute the genotype tuples for all samples
-    genotype_tuples = np.array([
-        [tuple(pad_len_1_genotype(rec.samples[sample]['GT'])) for sample in samples]
-        for rec in records
-    ])
 
-    # Convert genotype tuples to strings and look up in dist_key_dict
-    genotype_matrix = np.array([
-        [dist_key_dict.get(''.join(map(str, gt)), np.nan) for gt in sample_genotypes]
-        for sample_genotypes in genotype_tuples
-    ])
+    if (dist_method == 'binary'):
+    # Precompute the genotype tuples for all samples
+      genotype_tuples = np.array([
+          [tuple(pad_len_1_genotype(rec.samples.get(sample).get('GT'))) for sample in samples]
+          for rec in records
+      ])
+
+      # Convert genotype tuples to strings and look up in dist_key_dict
+      genotype_matrix = np.array([
+          [dist_key_dict.get(''.join(map(str, gt)), np.nan) for gt in sample_genotypes]
+          for sample_genotypes in genotype_tuples
+      ])
+    elif (dist_method == 'euclidian'):
+      # ! Something to note for later, in the case where no reads are "informative" for a site, but there are still enough reads to call a genotype, the genotype will be called as homozygous reference. This means that you end up with a value such as 0/0:10:0,.:.:. for a sample
+      # ! DP is 10, but AD is "0,.", so sum of AD is zero
+      # ! This means that the euclidian distance can kick out positions where the binary calculation keeps them, so n_comps_matrix will be different between the two methods
+      # ! If anything I should figure out how to filter these sites in the binary calculation as well, though it would introduce additional computational overhead
+      genotype_matrix = np.array([
+        [calc_prop_ref(sample, rec) for sample in samples]
+        for rec in records
+      ])
+    else:
+      raise ValueError(f"Invalid dist_method: {dist_method}. Must be 'binary' or 'euclidian'.")
 
     # Filter out variant positions seen in less than x% of samples
     percent_missing = np.sum(np.isnan(genotype_matrix), axis=1) / len(samples)
@@ -170,6 +191,18 @@ def get_diff_matrix_from_bcf(bcf_file,
         )
 
     return differences, samples
+
+def calc_prop_ref(sample, rec):
+      allele_depths = rec.samples.get(sample).get('AD')
+      if all(x is None for x in allele_depths):
+          return np.nan
+      else:
+        total_depth = sum(x for x in allele_depths if x is not None)
+        if total_depth == 0:
+            return np.nan
+
+      # first element of allele_depths is the reference allele depth
+      return allele_depths[0] / total_depth
 
 def pad_len_1_genotype(gt):
     if len(gt) == 1:

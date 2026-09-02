@@ -9,8 +9,8 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-    collapse = TRUE,
-    comment = "#>"
+  collapse = TRUE,
+  comment = "#>"
 )
 ```
 
@@ -56,104 +56,44 @@ conda remove -n scanBit_xkcd_1337 --all
 Then start over with confirm_conda_env().
 
 ### Prep the input data
-I'm reading in a pre-made Seurat object with two merged samples in it.
+Data downloaded from here: https://ndownloader.figshare.com/files/68075737
 
-You don't necessarily need to assign cell types, but I'm going to use it downstream so I'm doing it here.
-
-Replace the placeholder input/directory/here/ with the path to your data.
-```{r read_data, eval=FALSE}
-# This is a Seurat object with two patient osteosarcoma mets from one patient
-my_input_directory <- "input/directory/here/"
-two_sobj <- qs::qread(file.path(my_input_directory, "two_sobj.qs"))
-
-two_sobj$cell_group <-
-    paste0(two_sobj$sample_name, "_", two_sobj$seurat_clusters)
-
-# Do cell type annotation so I can use macrophages and monocytes as known normal cells
-# The idea is that Osteosarcoma cells are unlikely to be mistakenly annotated as macrophages or monocytes
-hpca <- celldex::HumanPrimaryCellAtlasData()
-imm_cells <- celldex::MonacoImmuneData()
-blueprint <- celldex::BlueprintEncodeData()
-
-cell_assign <-
-    SingleR::SingleR(as.SingleCellExperiment(two_sobj),
-        ref = list(
-            hpca,
-            imm_cells,
-            blueprint
-        ),
-        labels = list(
-            hpca$label.main,
-            imm_cells$label.main,
-            blueprint$label.main
-        )
-    )
-
-two_sobj$cell_type <-
-    cell_assign$labels
-
-two_sobj$cell_score <-
-    cell_assign$scores %>%
-    apply(MARGIN = 1, function(x) max(x, na.rm = TRUE))
+```{r, eval=FALSE}
+prep_demo_data()
 ```
 
-### Prepare input for scanBit
-This table has three columns, `cell_barcode`, `bam_file`, and `cell_group`.
+This downloads demo data to the folder the scanBit package is installed in. We can use this to run scanBit and show how the input should be formatted.
 
-The `cell_barcode` column should contain the cell barcodes from the Seurat object. It is critical that the cell barcodes match the barcodes that will be found in the bam file. This means that if you appended/prepended sample labels to the barcodes in your Seurat object, you need to strip those off.
+The data includes:
+- A Seurat object with lung samples from two genetically distinct mouse strains
+  - C57BL/6 and BALBc
+  - Most of the data has been removed to save space
+- Bam files for each sample and bai index files
+  - These only have a small portion of chromsome 19 to save space and speed things up
+- A tibble cell barcode table to be used as input for scanBit
+- A genome reference fasta file with chromosome 19 and tiny placeholders for the rest of the genome to save space
+
+```{r read_data, eval=FALSE}
+cell_barcode_table <-
+  qs2::qs_read(
+    file.path(
+      find.package("scanBit"),
+      "cell_barcode_table.qs2"
+    )
+  )
+
+cell_barcode_table
+```
+The cell barcode table has three columns, `cell_barcode`, `bam_file`, and `cell_group`.
+
+Key things to note about the cell_barcode_table
+
+The `cell_barcode` column should contain the cell barcodes from the Seurat object. It is critical that the cell barcodes match the barcodes that will be found in the bam file in the CB:Z optional field. This means that if you appended/prepended sample labels to the barcodes in your Seurat object, you need to strip those off.
 
 The `bam_file` column should contain the absolute path to the BAM file for each sample. All cells from a single sample should share the same bam file.
 
-The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces in your cell_group column contents.
+The `cell_group` column should contain the group that each cell belongs to (e.g., cluster or cell type). This will be used as labels in the tree image as well as the groups in the output file, so make it something meaningful. Also, don't put spaces or unsafe filename characters such as ][)(}{%/\*, etc.. in your cell_group column contents because these labels will be used internally to write temporary files.
 
-Replace the placeholder bam/directory/here/ with the path to your bam files.
-```{r make_cbt, eval=FALSE}
-my_bam_directory <- "bam/directory/here/"
-
-cell_barcode_table <-
-    two_sobj@meta.data %>%
-    rownames_to_column("cell_barcode") %>%
-    as_tibble() %>%
-    mutate(
-        bam_file = if_else(
-            sample_name == "S0058",
-            file.path(my_bam_directory, "S0058/possorted_genome_bam.bam"),
-            file.path(my_bam_directory, "S0059/possorted_genome_bam.bam")
-        ),
-        # I merged samples, so cell barcodes are prepended by the sample names
-        # I'm trimming the cell barcodes to match those in the bam file
-        cell_barcode = str_remove(cell_barcode, ".+_")
-    ) %>%
-    select(cell_barcode, bam_file, cell_group)
-```
-
-Example of what my cell_barcode_table looks like
-```
-> cell_barcode_table %>% head(n = 20)
-# A tibble: 20 x 3
-   cell_barcode       bam_file                                                       cell_group
-   <chr>              <chr>                                                          <chr>
- 1 AAACCCAAGAAATCCA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
- 2 AAACCCAAGCCACCGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
- 3 AAACCCACAGCAGTGA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
- 4 AAACCCAGTCCTGGGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
- 5 AAACGAAAGCACTCGC-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
- 6 AAACGAAAGCCGAATG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_11
- 7 AAACGAACAGGTAGTG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
- 8 AAACGAAGTCTGTGAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_6
- 9 AAACGAATCAGCTAGT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_12
-10 AAACGAATCATTTGCT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
-11 AAACGAATCCACTGAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
-12 AAACGCTAGATGCTAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
-13 AAACGCTCAACGGCCT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
-14 AAACGCTGTCCGATCG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
-15 AAAGAACCAGCAGTTT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_4
-16 AAAGAACCAGTTCCAA-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_6
-17 AAAGAACGTATCGCAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
-18 AAAGAACGTTTCAGAC-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_9
-19 AAAGAACTCGGTCTGG-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
-20 AAAGGATCAAGACAAT-1 bam/directory/here/S0058/possorted_genome_bam.bam S0058_1
-```
 
 ### Run scanBit
 This R command creates and runs batch jobs as part of the analysis. This is done either using a job scheduler such as slurm or SGE, or using bash shell scripts. If you want to look at these scripts, they are saved in the temporary folder (temp_folder argument). If submitting to slurm or SGE, the logs are saved there as well.
@@ -199,35 +139,34 @@ The ploidy argument takes one of:
 Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the path to your hg38 reference fasta.
 ```{r slurm_scanbit, eval=FALSE}
 start_time <- Sys.time()
-hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
+my_genome_reference <- file.path(find.package("scanBit"), "mm10_chr19_plus.fa")
 
 snp_tree <-
-    get_snp_tree(
-        cellid_bam_table = cell_barcode_table,
-        temp_dir = "output/temp",
-        ploidy = "GRCh38",
-        output_dir = "output",
-        output_base_name = "test_two_sobj",
-        ref_fasta = hg38_ref_fasta,
-        min_depth = c(5, 10, 20),
-        job_base = "two_sobj",
-        min_snvs_per_cluster = 250,
-        max_prop_missing_at_site = 0.75,
-        cleanup = FALSE,
-        other_job_header_options = c( # just optional examples
-            "--time=8:00:00",
-            "--mail-type=ALL",
-            "--mail-user=fake_email@not_a_real_domain.org",
-            "--partition=himem,general"
-        ),
-        other_batch_options = c( # just optional examples
-            "ml purge",
-            "ml miniforge3",
-            'eval "$(conda shell.bash hook)"',
-            "echo Doing stuff!"
-        ),
-        submit = TRUE
+  get_snp_tree(
+    cellid_bam_table = cell_barcode_table,
+    temp_dir = "output/temp",
+    ploidy = "mm10",
+    output_dir = "output",
+    output_base_name = "test_two_strains",
+    ref_fasta = my_genome_reference,
+    min_depth = c(10, 20),
+    job_base = "test_two_strains",
+    min_snvs_per_cluster = 100, # making this low for demo data - 250 is better
+    max_prop_missing_at_site = 0.75,
+    cleanup = FALSE, # Leaving the intermediate files for inspection
+    other_job_header_options = c( # Optional examples
+      "--time=8:00:00",
+      "--mail-type=ALL",
+      "--mail-user=fake_email@not_a_real_domain.org",
+      "--partition=himem,general"
+    ),
+    other_batch_options = c( # Optional examples
+      "ml purge",
+      "ml miniforge3",
+      'eval "$(conda shell.bash hook)"',
+      "echo Doing stuff!"
     )
+  )
 
 end_time <- Sys.time()
 total_time <- end_time - start_time
@@ -259,33 +198,33 @@ Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the pat
 hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
 snp_tree <-
-    get_snp_tree(
-        cellid_bam_table = cell_barcode_table,
-        temp_dir = "output/temp",
-        ploidy = "GRCh38",
-        output_dir = "output",
-        output_base_name = "test_two_sobj",
-        ref_fasta = hg38_ref_fasta,
-        min_depth = c(5, 10, 20),
-        job_base = "two_sobj",
-        min_snvs_per_cluster = 250,
-        max_prop_missing_at_site = 0.75,
-        cleanup = FALSE,
-        other_job_header_options = c(
-            "-m be",
-            "-M fake_email@not_a_real_domain.org"
-        ),
-        other_batch_options = c( # Just here as examples of things you might put
-            "module purge",
-            "module load miniforge3",
-            'eval "$(conda shell.bash hook)"',
-            "echo Doing stuff!"
-        ),
-        sge_q = "all.q",
-        sge_parallel_environment = "smp",
-        job_scheduler = "sge",
-        submit = FALSE # This is just here so I can test things
-    )
+  get_snp_tree(
+    cellid_bam_table = cell_barcode_table,
+    temp_dir = "output/temp",
+    ploidy = "GRCh38",
+    output_dir = "output",
+    output_base_name = "test_two_sobj",
+    ref_fasta = hg38_ref_fasta,
+    min_depth = c(5, 10, 20),
+    job_base = "two_sobj",
+    min_snvs_per_cluster = 250,
+    max_prop_missing_at_site = 0.75,
+    cleanup = FALSE,
+    other_job_header_options = c(
+      "-m be",
+      "-M fake_email@not_a_real_domain.org"
+    ),
+    other_batch_options = c( # Just here as examples of things you might put
+      "module purge",
+      "module load miniforge3",
+      'eval "$(conda shell.bash hook)"',
+      "echo Doing stuff!"
+    ),
+    sge_q = "all.q",
+    sge_parallel_environment = "smp",
+    job_scheduler = "sge",
+    submit = FALSE # This is just here so I can test things
+  )
 ```
 
 
@@ -297,27 +236,44 @@ Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the pat
 hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
 snp_tree <-
-    get_snp_tree(
-        cellid_bam_table = cell_barcode_table,
-        temp_dir = "output/temp",
-        ploidy = "GRCh38",
-        output_dir = "output",
-        output_base_name = "test_two_sobj",
-        ref_fasta = hg38_ref_fasta,
-        min_depth = c(5, 10, 20),
-        job_base = "two_sobj",
-        min_snvs_per_cluster = 250,
-        max_prop_missing_at_site = 0.75,
-        cleanup = FALSE,
-        other_batch_options = c( # Just here as examples of things you might put
-            "module purge",
-            "module load miniforge3",
-            'eval "$(conda shell.bash hook)"',
-            "echo Doing stuff!"
-        ),
-        job_scheduler = "bash",
-        submit = TRUE
-    )
+  get_snp_tree(
+    cellid_bam_table = cell_barcode_table,
+    temp_dir = "output/temp",
+    ploidy = "GRCh38",
+    output_dir = "output",
+    output_base_name = "test_two_sobj",
+    ref_fasta = hg38_ref_fasta,
+    min_depth = c(5, 10, 20),
+    job_base = "two_sobj",
+    min_snvs_per_cluster = 250,
+    max_prop_missing_at_site = 0.75,
+    cleanup = FALSE,
+    other_batch_options = c( # Just here as examples of things you might put
+      "module purge",
+      "module load miniforge3",
+      'eval "$(conda shell.bash hook)"',
+      "echo Doing stuff!"
+    ),
+    job_scheduler = "bash",
+    submit = TRUE
+  )
+```
+
+## Run using singularity
+```{bash}
+singularity pull oras://ghcr.io/kidcancerlab/sing_container:4564f50
+
+singularity shell \
+  --no-home \
+  --cleanenv \
+  --home "$(pwd):/project" \
+  --bind $(pwd):/project \
+  sing_container_4564f50.sif
+```
+
+### This is run inside the singularity container
+```{bash}
+cd /project
 ```
 
 
@@ -329,255 +285,254 @@ The resulting files in output/ include files named *_#_groups.txt where # is the
 
 # Add snv groups to the Seurat object
 two_sobj <-
-    add_snv_group_to_sobj(
-        two_sobj,
-        snv_group_file = "output/test_two_sobj_5_groups.txt",
-        new_columns = c("snv_group_5", "snv_top_lvl_group_5"),
-        cell_group = "used_clusters"
-    ) %>%
-    add_snv_group_to_sobj(
-        snv_group_file = "output/test_two_sobj_10_groups.txt",
-        new_columns = c("snv_group_10", "snv_top_lvl_group_10"),
-        cell_group = "used_clusters"
-    ) %>%
-    add_snv_group_to_sobj(
-        snv_group_file = "output/test_two_sobj_20_groups.txt",
-        new_columns = c("snv_group_20", "snv_top_lvl_group_20"),
-        cell_group = "used_clusters"
-    )
+  add_snv_group_to_sobj(
+    two_sobj,
+    snv_group_file = "output/test_two_sobj_5_groups.txt",
+    new_columns = c("snv_group_5", "snv_top_lvl_group_5"),
+    cell_group = "used_clusters"
+  ) %>%
+  add_snv_group_to_sobj(
+    snv_group_file = "output/test_two_sobj_10_groups.txt",
+    new_columns = c("snv_group_10", "snv_top_lvl_group_10"),
+    cell_group = "used_clusters"
+  ) %>%
+  add_snv_group_to_sobj(
+    snv_group_file = "output/test_two_sobj_20_groups.txt",
+    new_columns = c("snv_group_20", "snv_top_lvl_group_20"),
+    cell_group = "used_clusters"
+  )
 
 DimPlot(
-    two_sobj,
-    group.by = c("snv_group_5", "snv_group_10", "snv_group_20", "cell_type"),
-    label = TRUE,
-    repel = TRUE,
-    ncol = 2
+  two_sobj,
+  group.by = c("snv_group_5", "snv_group_10", "snv_group_20", "cell_type"),
+  label = TRUE,
+  repel = TRUE,
+  ncol = 2
 ) +
-    NoLegend()
+  NoLegend()
 
 control_celltypes <- c("Monocytes", "Macrophages", "NK cells", "NK_cell")
 
 # Figure out which clusters are more than 50% control celltypes
 normal_clusters <-
-    match_celltype_clusters(
-        sobject = two_sobj,
-        normal_celltypes = control_celltypes,
-        cluster_col = "used_clusters",
-        celltype_col = "cell_type"
-    )
+  match_celltype_clusters(
+    sobject = two_sobj,
+    normal_celltypes = control_celltypes,
+    cluster_col = "used_clusters",
+    celltype_col = "cell_type"
+  )
 
 two_sobj <-
-    label_tumor_cells(
-        two_sobj,
-        cell_group = "used_clusters",
-        snv_group_col = "snv_group_20",
-        normal_clusters = normal_clusters,
-        tumor_call_column = "snv_tumor_call_20"
-    )
+  label_tumor_cells(
+    two_sobj,
+    cell_group = "used_clusters",
+    snv_group_col = "snv_group_20",
+    normal_clusters = normal_clusters,
+    tumor_call_column = "snv_tumor_call_20"
+  )
 
 DimPlot(
-    two_sobj,
-    group.by = c("snv_group_20", "snv_tumor_call_20", "cell_type"),
-    label = TRUE,
-    repel = TRUE,
-    ncol = 2
+  two_sobj,
+  group.by = c("snv_group_20", "snv_tumor_call_20", "cell_type"),
+  label = TRUE,
+  repel = TRUE,
+  ncol = 2
 ) +
-    NoLegend()
+  NoLegend()
 ```
 
-## Calculate the which variants divide tumors from normal cells
+## Calculate which variants divide tumors from normal cells
 ```{r var_var, eval=FALSE}
 group_strings <-
-    read_tsv(
-        "output/test_two_sobj_5_groups.txt",
-        col_names = c("cluster", "all_groups", "top_groups"),
-        show_col_types = FALSE
-    ) %>%
-    group_by(top_groups) %>%
-    summarize(groups = paste(cluster, collapse = ",")) %>%
-    pull(groups, name = top_groups)
+  read_tsv(
+    "output/test_two_sobj_5_groups.txt",
+    col_names = c("cluster", "all_groups", "top_groups"),
+    show_col_types = FALSE
+  ) %>%
+  group_by(top_groups) %>%
+  summarize(groups = paste(cluster, collapse = ",")) %>%
+  pull(groups, name = top_groups)
 
 calc_variant_variability(
-    merged_bcf_file = "output/mergedtest_two_sobj_c5.bcf",
-    log_base = "output/merged_c5_slurm_log_var",
-    temp_dir = "output/temp",
-    output_file = "output/merged_c5_variable_variants.tsv",
-    group_1 = group_strings["top_lvl_group0"], # Group_1 is tumor
-    group_2 = group_strings["top_lvl_group1"],
-    other_job_header_options = c("--time=05:00:00"),
-    other_batch_options = c( # Just here as examples of things you might put
-        "module purge",
-        "module load miniforge3",
-        'eval "$(conda shell.bash hook)"'
-    ),
-    job_scheduler = "slurm"
+  merged_bcf_file = "output/mergedtest_two_sobj_c5.bcf",
+  log_base = "output/merged_c5_slurm_log_var",
+  temp_dir = "output/temp",
+  output_file = "output/merged_c5_variable_variants.tsv",
+  group_1 = group_strings["top_lvl_group0"], # Group_1 is tumor
+  group_2 = group_strings["top_lvl_group1"],
+  other_job_header_options = c("--time=05:00:00"),
+  other_batch_options = c( # Just here as examples of things you might put
+    "module purge",
+    "module load miniforge3",
+    'eval "$(conda shell.bash hook)"'
+  ),
+  job_scheduler = "slurm"
 )
 
 # Just to show that there are results. Not much to actually learn from this plot
 read_tsv(
-    "output/merged_c5_variable_variants.tsv",
-    show_col_types = FALSE
+  "output/merged_c5_variable_variants.tsv",
+  show_col_types = FALSE
 ) %>%
-    filter(cross_minus_within_dist > 0.5) %>%
-    ggplot(
-        aes(
-            x = pos,
-            y = chr,
-            size = cross_minus_within_dist,
-            color = cross_minus_within_dist,
-            alpha = cross_minus_within_dist
-        )
-    ) +
-    geom_point()
+  filter(cross_minus_within_dist > 0.5) %>%
+  ggplot(
+    aes(
+      x = pos,
+      y = chr,
+      size = cross_minus_within_dist,
+      color = cross_minus_within_dist,
+      alpha = cross_minus_within_dist
+    )
+  ) +
+  geom_point()
 ```
-
 
 ## Try calling variants from individual cells, but only on the important variant positions
 This technically works, but it's very dissapointing how few variants each cells has and how sparse the resulting data is. I do not think this is overly useful, but I'm including it here since the code can technically do it.
 ```{r cell_vars, eval=FALSE}
 s_59_cell_barcodes <-
-    two_sobj %>%
-    subset(sample_name == "S0059") %>%
-    colnames() %>%
-    str_remove("S0059_") %>%
-    paste(collapse = " ")
+  two_sobj %>%
+  subset(sample_name == "S0059") %>%
+  colnames() %>%
+  str_remove("S0059_") %>%
+  paste(collapse = " ")
 
 # I should filter variable_variants_file before I give it to call_variants_single_cell
 bam_directory <- "bam/directory/here/"
 hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
 
 call_variants_single_cell(
-    bam_to_use = file.path(bam_directory, "S0059/possorted_genome_bam.bam"),
-    variable_variants_file = "output/merged_c5_variable_variants.tsv",
-    cell_barcodes = s_59_cell_barcodes,
-    output_file = "cell_variant_calls_S059.tsv",
-    min_depth = 3,
-    variant_diff_cutoff = 1,
-    ploidy = "GRCh38",
-    ref_fasta = hg38_ref_fasta,
-    job_base = "cell_vars",
-    log_base = "slurm_cell_vars",
-    temp_dir = "output/temp/cell_vars_59",
-    submit = TRUE,
-    other_job_header_options = c("--time=05:00:00"),
-    other_batch_options = c( # Just here as examples of things you might put
-        "module purge",
-        "module load miniforge3",
-        'eval "$(conda shell.bash hook)"'
-    )
+  bam_to_use = file.path(bam_directory, "S0059/possorted_genome_bam.bam"),
+  variable_variants_file = "output/merged_c5_variable_variants.tsv",
+  cell_barcodes = s_59_cell_barcodes,
+  output_file = "cell_variant_calls_S059.tsv",
+  min_depth = 3,
+  variant_diff_cutoff = 1,
+  ploidy = "GRCh38",
+  ref_fasta = hg38_ref_fasta,
+  job_base = "cell_vars",
+  log_base = "slurm_cell_vars",
+  temp_dir = "output/temp/cell_vars_59",
+  submit = TRUE,
+  other_job_header_options = c("--time=05:00:00"),
+  other_batch_options = c( # Just here as examples of things you might put
+    "module purge",
+    "module load miniforge3",
+    'eval "$(conda shell.bash hook)"'
+  )
 )
 ```
 
 ## Work in progress section on variable variants
 ```{r, eval=FALSE}
 count_to_call <-
-    c(
-        "0" = "0/0",
-        "1" = "0/1",
-        "2" = "1/1"
-    )
+  c(
+    "0" = "0/0",
+    "1" = "0/1",
+    "2" = "1/1"
+  )
 
 genotype_info <-
-    read_tsv(
-        "output/merged_c5_variable_variants.tsv",
-        show_col_types = FALSE
-    ) %>%
-    filter(cross_minus_within_dist >= 1) %>%
-    select(
-        -group_1_within_dist,
-        -group_2_within_dist,
-        -cross_group_dist,
-        -within_groups_mean_dist,
-        -cross_minus_within_dist
-    ) %>%
-    mutate(
-        mean_group_1_alts = round(mean_group_1_alts),
-        mean_group_2_alts = round(mean_group_2_alts),
-        group_1_genotype = count_to_call[as.character(mean_group_1_alts)],
-        group_2_genotype = count_to_call[as.character(mean_group_2_alts)],
-        pos = paste(chr, pos, sep = "_")
-    )
+  read_tsv(
+    "output/merged_c5_variable_variants.tsv",
+    show_col_types = FALSE
+  ) %>%
+  filter(cross_minus_within_dist >= 1) %>%
+  select(
+    -group_1_within_dist,
+    -group_2_within_dist,
+    -cross_group_dist,
+    -within_groups_mean_dist,
+    -cross_minus_within_dist
+  ) %>%
+  mutate(
+    mean_group_1_alts = round(mean_group_1_alts),
+    mean_group_2_alts = round(mean_group_2_alts),
+    group_1_genotype = count_to_call[as.character(mean_group_1_alts)],
+    group_2_genotype = count_to_call[as.character(mean_group_2_alts)],
+    pos = paste(chr, pos, sep = "_")
+  )
 
 tumor_genotype_profile <-
-    genotype_info %>%
-    pull(group_1_genotype, name = pos)
+  genotype_info %>%
+  pull(group_1_genotype, name = pos)
 
 normal_genotype_profile <-
-    genotype_info %>%
-    pull(group_2_genotype, name = pos)
+  genotype_info %>%
+  pull(group_2_genotype, name = pos)
 
 single_call_meta <-
-    read_tsv(
-        "cell_variant_calls_S059.tsv",
-        show_col_types = FALSE
-    ) %>%
-    mutate(
-        pos = paste(chr, pos, sep = "_"),
-        tumor_genotype = tumor_genotype_profile[pos],
-        normal_genotype = normal_genotype_profile[pos],
-        call = if_else(
-            call == 1,
-            "0/1",
-            call
-        )
-    ) %>%
-    mutate(
-        call = if_else(
-            call == 0,
-            "0/0",
-            call
-        )
-    ) %>%
-    select(-chr, -ref, -alt) %>%
-    group_by(cell_barcode) %>%
-    mutate(
-        is_tumor = call == tumor_genotype,
-        is_normal = call == normal_genotype,
-        tumor_call_sum = sum(is_tumor),
-        normal_call_sum = sum(is_normal),
-        prop_tumor_call = tumor_call_sum / n(),
-        cell_barcode = paste0("S0059_", cell_barcode)
-    ) %>%
-    ungroup() %>%
-    select(-tumor_genotype, -normal_genotype, -call, -is_normal) %>%
-    pivot_wider(
-        id_cols = c(
-            cell_barcode,
-            tumor_call_sum,
-            normal_call_sum,
-            prop_tumor_call
-        ),
-        names_from = pos,
-        values_from = is_tumor
-    ) %>%
-    column_to_rownames("cell_barcode")
+  read_tsv(
+    "cell_variant_calls_S059.tsv",
+    show_col_types = FALSE
+  ) %>%
+  mutate(
+    pos = paste(chr, pos, sep = "_"),
+    tumor_genotype = tumor_genotype_profile[pos],
+    normal_genotype = normal_genotype_profile[pos],
+    call = if_else(
+      call == 1,
+      "0/1",
+      call
+    )
+  ) %>%
+  mutate(
+    call = if_else(
+      call == 0,
+      "0/0",
+      call
+    )
+  ) %>%
+  select(-chr, -ref, -alt) %>%
+  group_by(cell_barcode) %>%
+  mutate(
+    is_tumor = call == tumor_genotype,
+    is_normal = call == normal_genotype,
+    tumor_call_sum = sum(is_tumor),
+    normal_call_sum = sum(is_normal),
+    prop_tumor_call = tumor_call_sum / n(),
+    cell_barcode = paste0("S0059_", cell_barcode)
+  ) %>%
+  ungroup() %>%
+  select(-tumor_genotype, -normal_genotype, -call, -is_normal) %>%
+  pivot_wider(
+    id_cols = c(
+      cell_barcode,
+      tumor_call_sum,
+      normal_call_sum,
+      prop_tumor_call
+    ),
+    names_from = pos,
+    values_from = is_tumor
+  ) %>%
+  column_to_rownames("cell_barcode")
 
 two_sobj2 <- AddMetaData(two_sobj, single_call_meta)
 two_sobj2$has_calls <- !is.na(two_sobj2$prop_tumor_call)
 two_sobj2$prop_tumor_call[!two_sobj2$has_calls] <- 0.1
 
 FeaturePlot(
-    subset(two_sobj2, sample_name == "S0059"),
-    features = colnames(single_call_meta)[3],
-    order = FALSE,
-    ncol = 1,
-    pt.size = 2,
-    alpha = 0.8,
-    split.by = "has_calls"
+  subset(two_sobj2, sample_name == "S0059"),
+  features = colnames(single_call_meta)[3],
+  order = FALSE,
+  ncol = 1,
+  pt.size = 2,
+  alpha = 0.8,
+  split.by = "has_calls"
 )
 
 DimPlot(
-    two_sobj2,
-    group.by = c(
-        #"chr6_32579023",
-        #"chr19_1106616",
-        #"chr21_39342552",
-        "chrM_15323"
-    ),
-    pt.size = 2,
-    alpha = 0.5,
-    ncol = 2,
-    order = TRUE
+  two_sobj2,
+  group.by = c(
+    # "chr6_32579023",
+    # "chr19_1106616",
+    # "chr21_39342552",
+    "chrM_15323"
+  ),
+  pt.size = 2,
+  alpha = 0.5,
+  ncol = 2,
+  order = TRUE
 )
 ```
 

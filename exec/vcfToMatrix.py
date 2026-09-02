@@ -27,6 +27,10 @@ def main():
                         type = str,
                         default = 'dendrogram.pdf',
                         help = 'output file name of plot. Id suggest either png or pdf')
+    parser.add_argument('--n_comps_file',
+                        type = str,
+                        default = 'n_comps_matrix.txt',
+                        help = 'output file name of number of comparisons matrix')
     parser.add_argument('--min_snvs_for_cluster',
                         type = int,
                         default = 1000,
@@ -74,7 +78,9 @@ def main():
         args.max_prop_missing,
         args.processes)
 
-    prop_diff_matrix = calc_proportion_dist_matrix(differences)
+    prop_diff_matrix, n_comps_matrix = calc_proportion_dist_matrix(differences)
+
+    write_n_comps_matrix(n_comps_matrix, samples, args.n_comps_file)
 
     hclust_out = hierarchical_clustering(prop_diff_matrix)
 
@@ -196,7 +202,15 @@ def calc_proportion_dist_matrix(differences, bootstrap=False):
     sum_differences = np.nansum(differences, axis=0)
     # Calculate the proportion of differences
     prop_diff_matrix = sum_differences / (n_comps_matrix * 2)
-    return prop_diff_matrix
+    return prop_diff_matrix, n_comps_matrix
+
+def write_n_comps_matrix(n_comps_matrix, samples, output_file):
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write('\t' + '\t'.join(samples) + '\n')
+        f.writelines(
+            sample + '\t' + '\t'.join(map(str, row)) + '\n'
+            for sample, row in zip(samples, n_comps_matrix)
+        )
 
 def hierarchical_clustering(distance_matrix,
                             linkage_method='ward'):
@@ -276,8 +290,8 @@ def get_cluster_dict(hclust, samples):
 
 def bootstrap_worker(rand_seed, differences, true_cluster_dict, samples):
     np.random.seed(rand_seed)
-    prop_diff_matrix_boot = calc_proportion_dist_matrix(differences,
-                                                        bootstrap = True)
+    prop_diff_matrix_boot, _ = calc_proportion_dist_matrix(differences,
+                                                           bootstrap = True)
 
     hclust_out_boot = hierarchical_clustering(prop_diff_matrix_boot)
 

@@ -18,6 +18,7 @@ python \
         --n_bootstrap placeholder_n_bootstrap \
         --bootstrap_threshold placeholder_bootstrap_threshold \
         --n_comps_file placeholder_n_comps_file \
+        --dist_method placeholder_dist_method \
         --figure_file placeholder_fig_file placeholder_verbose \
     > placeholder_groups_output
 

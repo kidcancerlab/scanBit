@@ -12,6 +12,7 @@ group_clusters_by_dist(
   n_bootstraps = 1000,
   bootstrap_cutoff = 0.99,
   tree_figure_file,
+  n_comps_file,
   verbose = TRUE,
   job_base = "job_dist",
   account = "gdrobertslab",
@@ -45,6 +46,9 @@ This is the proportion of bootstraps that must support a grouping for it to
 be considered a valid grouping.}
 
 \item{tree_figure_file}{Character. Path to the output tree figure.}
+
+\item{n_comps_file}{Character. Path to the output file for number of
+shared comparable SNVs between each pair of clusters.}
 
 \item{verbose}{Whether to print out verbose output or not.}
 

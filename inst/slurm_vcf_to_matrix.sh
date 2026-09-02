@@ -27,6 +27,7 @@ python \
         --max_prop_missing placeholder_max_missing \
         --n_bootstrap placeholder_n_bootstrap \
         --bootstrap_threshold placeholder_bootstrap_threshold \
+        --n_comps_file placeholder_n_comps_file \
         --figure_file placeholder_fig_file placeholder_verbose \
     > placeholder_groups_output
 

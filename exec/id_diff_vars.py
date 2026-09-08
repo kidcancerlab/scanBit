@@ -1,8 +1,9 @@
 import argparse
 import sys
 import warnings
-from pysam import VariantFile
+
 import numpy as np
+from pysam import VariantFile
 
 parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--bcf',

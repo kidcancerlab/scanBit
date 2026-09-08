@@ -6,7 +6,6 @@ from itertools import chain, repeat
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.pylab import sample
 from pysam import VariantFile
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.spatial.distance import squareform

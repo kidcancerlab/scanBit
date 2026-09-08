@@ -1,14 +1,16 @@
 import argparse
-import sys
 import multiprocessing
-from itertools import repeat, chain
-from matplotlib.pylab import sample
-from pysam import VariantFile
-import numpy as np
-from scipy.cluster.hierarchy import linkage, dendrogram
-from scipy.spatial.distance import squareform
+import sys
+from itertools import chain, repeat
+
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.pylab import sample
+from pysam import VariantFile
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.spatial.distance import squareform
+
 matplotlib.use('pdf')
 # from https://physicalmodelingwithpython.blogspot.com/2015/06/making-plots-for-publication.html
 matplotlib.rcParams['pdf.fonttype'] = 42

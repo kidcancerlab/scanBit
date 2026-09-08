@@ -57,7 +57,6 @@ samtools view \
         - \
     | bcftools call \
         --threads 5 \
-        -a GQ \
         -O u \
         -m \
         placeholder_ploidy \

@@ -13,7 +13,7 @@ test_that("Table has correct column names", {
             cell_group = c("Group1", "Group2", "Group3"),
             bam_file = c("file1.bam", "file2.bam", "file3.bam")
         )
-    expect_equal(check_cellid_bam_table(correct_table), 0)
+    expect_null(check_cellid_bam_table(correct_table))
 })
 
 # Test for missing columns

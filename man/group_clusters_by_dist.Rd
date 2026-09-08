@@ -11,6 +11,7 @@ group_clusters_by_dist(
   max_prop_missing_at_site = 0.9,
   n_bootstraps = 1000,
   bootstrap_cutoff = 0.99,
+  dist_method,
   tree_figure_file,
   n_comps_file,
   verbose = TRUE,
@@ -44,6 +45,13 @@ of samples in the hierarchical clustering tree.}
 \item{bootstrap_cutoff}{The bootstrap cutoff to use when collapsing the tree.
 This is the proportion of bootstraps that must support a grouping for it to
 be considered a valid grouping.}
+
+\item{dist_method}{The distance method to use when calculating the distance
+matrix. Can be "binary" or "euclidian". The binary method calculates the
+proportion of sites that are different between two samples, while the
+euclidian method calculates the euclidian distance between the samples
+based on the proportion of reference alleles at each site. The default is
+"binary".}
 
 \item{tree_figure_file}{Character. Path to the output tree figure.}
 

@@ -19,6 +19,7 @@ get_snp_tree(
   max_prop_missing_at_site = 0.75,
   n_bootstraps = 10000,
   bootstrap_cutoff = 0.95,
+  dist_method = "binary",
   tree_image_type = "png",
   verbose = TRUE,
   submit = TRUE,
@@ -72,6 +73,13 @@ of samples in the hierarchical clustering tree.}
 \item{bootstrap_cutoff}{The bootstrap cutoff to use when collapsing the tree.
 This is the proportion of bootstraps that must support a grouping for it to
 be considered a valid grouping.}
+
+\item{dist_method}{The distance method to use when calculating the distance
+matrix. Can be "binary" or "euclidian". The binary method calculates the
+proportion of sites that are different between two samples, while the
+euclidian method calculates the euclidian distance between the samples
+based on the proportion of reference alleles at each site. The default is
+"binary".}
 
 \item{tree_image_type}{The type of image to use for the tree. Can be "png",
 or "pdf". This will be the file extension used for the tree image file.}

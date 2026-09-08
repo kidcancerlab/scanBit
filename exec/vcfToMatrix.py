@@ -130,8 +130,6 @@ def main():
 
     if args.verbose:
         print("Done!", file=sys.stderr)
-    return
-
 
 ########
 ### functions
@@ -150,11 +148,11 @@ def get_diff_matrix_from_bcf(bcf_file,
     ### Check if bcf index exists
     bcf_in = VariantFile(bcf_file, threads = threads)
     samples = tuple(bcf_in.header.samples)
-    records = tuple(x for x in list(bcf_in.fetch()) if (len(x.alts) == 1))
+    records = tuple(x for x in list(bcf_in.fetch()) if len(x.alts) == 1)
     bcf_in.close()
 
 
-    if (dist_method == 'binary'):
+    if dist_method == 'binary':
     # Precompute the genotype tuples for all samples
       genotype_tuples = np.array([
           [tuple(pad_len_1_genotype(rec.samples.get(sample).get('GT'))) for sample in samples]
@@ -166,7 +164,7 @@ def get_diff_matrix_from_bcf(bcf_file,
           [dist_key_dict.get(''.join(map(str, gt)), np.nan) for gt in sample_genotypes]
           for sample_genotypes in genotype_tuples
       ])
-    elif (dist_method == 'euclidian'):
+    elif dist_method == 'euclidian':
       # ! Something to note for later, in the case where no reads are "informative" for a site, but there are still enough reads to call a genotype, the genotype will be called as homozygous reference. This means that you end up with a value such as 0/0:10:0,.:.:. for a sample
       # ! DP is 10, but AD is "0,.", so sum of AD is zero
       # ! This means that the euclidian distance can kick out positions where the binary calculation keeps them, so n_comps_matrix will be different between the two methods
@@ -195,16 +193,16 @@ def get_diff_matrix_from_bcf(bcf_file,
     return differences, samples
 
 def calc_prop_ref(sample, rec):
-      allele_depths = rec.samples.get(sample).get('AD')
-      if all(x is None for x in allele_depths):
+    allele_depths = rec.samples.get(sample).get('AD')
+    if all(x is None for x in allele_depths):
+        return np.nan
+    else:
+      total_depth = sum(x for x in allele_depths if x is not None)
+      if total_depth == 0:
           return np.nan
-      else:
-        total_depth = sum(x for x in allele_depths if x is not None)
-        if total_depth == 0:
-            return np.nan
 
-      # first element of allele_depths is the reference allele depth
-      return allele_depths[0] / total_depth
+    # first element of allele_depths is the reference allele depth
+    return allele_depths[0] / total_depth
 
 def pad_len_1_genotype(gt):
     if len(gt) == 1:

@@ -13,30 +13,30 @@
 #'
 #' @export
 confirm_conda_env <- function(general = FALSE) {
-    # Eventually, maybe drop this in the package package
+  # Eventually, maybe drop this in the package package
 
-    env_found <- conda_env_exists()
+  env_found <- conda_env_exists()
 
-    conda_version_right <- right_conda_version()
+  conda_version_right <- right_conda_version()
 
-    if (env_found && conda_version_right) {
-        return(TRUE)
-    } else if (!env_found) {
-        message("Creating required conda environment scanBit_xkcd_1337")
-        env_made <- make_conda_env(general)
+  if (env_found && conda_version_right) {
+    return(TRUE)
+  } else if (!env_found) {
+    message("Creating required conda environment scanBit_xkcd_1337")
+    env_made <- make_conda_env(general)
 
-        return(env_made)
-    } else if (!conda_version_right) {
-        system(paste0(
-            "conda remove -n scanBit_xkcd_1337 --all -y"
-        ))
-        env_made <- make_conda_env(general)
+    return(env_made)
+  } else if (!conda_version_right) {
+    system(paste0(
+      "conda remove -n scanBit_xkcd_1337 --all -y"
+    ))
+    env_made <- make_conda_env(general)
 
-        return(env_made)
-    }
+    return(env_made)
+  }
 
-    # Shouldn't be possible to get here
-    return(FALSE)
+  # Shouldn't be possible to get here
+  return(FALSE)
 }
 
 #' Check if the Conda Environment Exists
@@ -53,19 +53,19 @@ confirm_conda_env <- function(general = FALSE) {
 #'
 #' @noRd
 conda_env_exists <- function() {
-    if (check_cmd("conda") != 0) {
-        stop(
-            "conda command not found, do you need to load a module or add ",
-            "this to your PATH?"
-        )
-    }
-
-    return_value <- system(
-        "conda env list | grep scanBit_xkcd_1337",
-        ignore.stdout = TRUE
+  if (check_cmd("conda") != 0) {
+    stop(
+      "conda command not found, do you need to load a module or add ",
+      "this to your PATH?"
     )
+  }
 
-    return(return_value == 0)
+  return_value <- system(
+    "conda env list | grep scanBit_xkcd_1337",
+    ignore.stdout = TRUE
+  )
+
+  return(return_value == 0)
 }
 
 #' Get the Conda Version for scanBit Package
@@ -81,30 +81,30 @@ conda_env_exists <- function() {
 #'
 #' @noRd
 right_conda_version <- function() {
-    if (conda_env_exists()) {
-        package_version <- utils::packageVersion("scanBit") |>
-            as.character()
+  if (conda_env_exists()) {
+    package_version <- utils::packageVersion("scanBit") |>
+      as.character()
 
-        conda_version <-
-            tryCatch(
-                system(
-                    "conda env config vars list -n scanBit_xkcd_1337 | grep '^scanBit_version ='",
-                    intern = TRUE
-                ) |>
-                    stringr::str_remove("scanBit_version = "),
-                error = function(e) {
-                    message("Conda environment is not set up correctly.")
-                    return("wrong version")
-                },
-                warning = function(w) {
-                    message("Conda environment is not set up correctly.")
-                    return("wrong version")
-                }
-            )
+    conda_version <-
+      tryCatch(
+        system(
+          "conda env config vars list -n scanBit_xkcd_1337 | grep '^scanBit_version ='",
+          intern = TRUE
+        ) |>
+          stringr::str_remove("scanBit_version = "),
+        error = function(e) {
+          message("Conda environment is not set up correctly.")
+          return("wrong version")
+        },
+        warning = function(w) {
+          message("Conda environment is not set up correctly.")
+          return("wrong version")
+        }
+      )
 
-        return(conda_version == package_version)
-    }
-    return(FALSE)
+    return(conda_version == package_version)
+  }
+  return(FALSE)
 }
 
 #' Create a Conda Environment
@@ -119,39 +119,39 @@ right_conda_version <- function() {
 #'
 #' @noRd
 make_conda_env <- function(general) {
-    if (general) {
-        conda_yml_file <- paste0(find.package("scanBit"), "/conda_general.yml")
-    } else {
-        conda_yml_file <- paste0(find.package("scanBit"), "/conda.yml")
-    }
+  if (general) {
+    conda_yml_file <- paste0(find.package("scanBit"), "/conda_general.yml")
+  } else {
+    conda_yml_file <- paste0(find.package("scanBit"), "/conda.yml")
+  }
 
-    return_value <-
+  return_value <-
+    system(paste0(
+      "conda env create -n scanBit_xkcd_1337 --file ",
+      conda_yml_file
+    ))
+
+  if (return_value != 0 && !general) {
+    user_choice <- readline(
+      paste(
+        "It looks like you tried to make the conda environment",
+        "with specific version requirements and it failed.",
+        "Would you like to try making it with less stringent",
+        "version requirements? please enter yes or no\n"
+      )
+    )
+    if (user_choice == "yes") {
+      return_value <-
         system(paste0(
-            "conda env create -n scanBit_xkcd_1337 --file ",
-            conda_yml_file
+          "conda env create -n scanBit_xkcd_1337 --file ",
+          paste0(find.package("scanBit"), "/conda_general.yml")
         ))
-
-    if (return_value != 0 && !general) {
-        user_choice <- readline(
-            paste(
-                "It looks like you tried to make the conda environment",
-                "with specific version requirements and it failed.",
-                "Would you like to try making it with less stringent",
-                "version requirements? please enter yes or no\n"
-            )
-        )
-        if (user_choice == "yes") {
-            return_value <-
-                system(paste0(
-                    "conda env create -n scanBit_xkcd_1337 --file ",
-                    paste0(find.package("scanBit"), "/conda_general.yml")
-                ))
-        }
     }
+  }
 
-    if (return_value == 0) {
-        return(TRUE)
-    }
+  if (return_value == 0) {
+    return(TRUE)
+  }
 
-    return(FALSE)
+  return(FALSE)
 }

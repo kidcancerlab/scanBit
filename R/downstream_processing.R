@@ -28,55 +28,57 @@
 #' }
 #'
 #' @export
-add_snv_group_to_sobj <- function(sobject,
-                                  snv_group_file,
-                                  new_columns = c(
-                                      "snv_group_",
-                                      "snv_top_lvl_group"
-                                  ),
-                                  cell_group) {
-    cluster_group_key <-
-        readr::read_tsv(
-            file = snv_group_file,
-            col_names = c(cell_group, new_columns),
-            show_col_types = FALSE
-        )
+add_snv_group_to_sobj <- function(
+  sobject,
+  snv_group_file,
+  new_columns = c(
+    "snv_group_",
+    "snv_top_lvl_group"
+  ),
+  cell_group
+) {
+  cluster_group_key <-
+    readr::read_tsv(
+      file = snv_group_file,
+      col_names = c(cell_group, new_columns),
+      show_col_types = FALSE
+    )
 
-    if (nrow(cluster_group_key) == 0) {
-        warning(snv_group_file, " has no data. Setting columns to 'unknown'")
+  if (nrow(cluster_group_key) == 0) {
+    warning(snv_group_file, " has no data. Setting columns to 'unknown'")
 
-        sobject@meta.data[, new_columns] <- NA
-        return(sobject)
-    }
-
-    if (ncol(cluster_group_key) != length(c(cell_group, new_columns))) {
-        message("cell_group must be a vector of length 1 and new_columns must",
-                " be a vector to match other columns in snv_group_file")
-        stop("new_columns of improper length")
-    }
-
-    if (!cell_group %in% colnames(sobject@meta.data)) {
-        stop("cell_group column: '",
-             cell_group,
-             "' not found in sobject metadata")
-    }
-
-    if (any(new_columns %in% colnames(sobject@meta.data))) {
-        message("new_columns already exists in sobject, overwriting")
-        sobject@meta.data[, new_columns] <- NULL
-    }
-
-    # by default, merge removes the rownames, so we need to add them back
-    sobject@meta.data <-
-        sobject@meta.data %>%
-        tibble::rownames_to_column("cell") %>%
-        dplyr::left_join(
-            cluster_group_key,
-            by = cell_group
-        ) %>%
-        tibble::column_to_rownames("cell")
-
+    sobject@meta.data[, new_columns] <- NA
     return(sobject)
+  }
+
+  if (ncol(cluster_group_key) != length(c(cell_group, new_columns))) {
+    message(
+      "cell_group must be a vector of length 1 and new_columns must",
+      " be a vector to match other columns in snv_group_file"
+    )
+    stop("new_columns of improper length")
+  }
+
+  if (!cell_group %in% colnames(sobject@meta.data)) {
+    stop("cell_group column: '", cell_group, "' not found in sobject metadata")
+  }
+
+  if (any(new_columns %in% colnames(sobject@meta.data))) {
+    message("new_columns already exists in sobject, overwriting")
+    sobject@meta.data[, new_columns] <- NULL
+  }
+
+  # by default, merge removes the rownames, so we need to add them back
+  sobject@meta.data <-
+    sobject@meta.data %>%
+    tibble::rownames_to_column("cell") %>%
+    dplyr::left_join(
+      cluster_group_key,
+      by = cell_group
+    ) %>%
+    tibble::column_to_rownames("cell")
+
+  return(sobject)
 }
 
 #' Label Tumor Groups in a Seurat Object Using SNV Groups
@@ -119,64 +121,70 @@ add_snv_group_to_sobj <- function(sobject,
 #' }
 #'
 #' @export
-label_tumor_cells <- function(sobject,
-                              cell_group = "used_clusters",
-                              snv_group_col,
-                              normal_clusters,
-                              tumor_call_column = "snv_tumor_call") {
-    if (tumor_call_column %in% colnames(sobject@meta.data)) {
-        message("tumor_call_column already exists in sobject, overwriting")
-    }
+label_tumor_cells <- function(
+  sobject,
+  cell_group = "used_clusters",
+  snv_group_col,
+  normal_clusters,
+  tumor_call_column = "snv_tumor_call"
+) {
+  if (tumor_call_column %in% colnames(sobject@meta.data)) {
+    message("tumor_call_column already exists in sobject, overwriting")
+  }
 
-    if (all(is.na(sobject@meta.data[[snv_group_col]]))) {
-        warning(
-            snv_group_col,
-            " is all NAs, add_snv_group_to_sobj() likely found an empty file",
-            " for snv_group_file. That would be the first thing to check."
-        )
-        sobject@meta.data[, tumor_call_column] <- "unknown"
-
-        return(sobject)
-    }
-
-    if (!is.null(normal_clusters)) {
-        norm_snv_groups <-
-            table(
-                sobject@meta.data[[cell_group]],
-                sobject@meta.data[[snv_group_col]]
-            ) %>%
-            as.data.frame() %>%
-            dplyr::rename("groups" = "Var1", "snv_group" = "Var2") %>%
-            dplyr::filter(Freq > 0) %>%
-            dplyr::group_by(dplyr::pick("snv_group")) %>%
-            dplyr::group_split() %>%
-            lapply(function(x) {
-                dplyr::if_else(
-                    any(x$groups %in% normal_clusters),
-                    x$snv_group[1],
-                    NA)}) %>%
-            unlist() %>%
-            stats::na.omit() %>%
-            as.character()
-
-        if (length(norm_snv_groups) > 0) {
-            # if tree_group contains the control, then rename it to "normal"
-            # and label the other group(s) as "tumor"
-            sobject@meta.data[[tumor_call_column]] <-
-                dplyr::if_else(
-                    sobject@meta.data[[snv_group_col]] %in% norm_snv_groups,
-                    "normal",
-                    dplyr::if_else(
-                        is.na(sobject@meta.data[[snv_group_col]]),
-                        "unknown",
-                        "tumor"
-                    )
-                )
-        } else {
-            stop("No normal clusters found, check the normal_clusters argument",
-                 " and make sure you are specifying the right groups.")
-        }
-    }
+  if (all(is.na(sobject@meta.data[[snv_group_col]]))) {
+    warning(
+      snv_group_col,
+      " is all NAs, add_snv_group_to_sobj() likely found an empty file",
+      " for snv_group_file. That would be the first thing to check."
+    )
+    sobject@meta.data[, tumor_call_column] <- "unknown"
 
     return(sobject)
+  }
+
+  if (!is.null(normal_clusters)) {
+    norm_snv_groups <-
+      table(
+        sobject@meta.data[[cell_group]],
+        sobject@meta.data[[snv_group_col]]
+      ) %>%
+      as.data.frame() %>%
+      dplyr::rename("groups" = "Var1", "snv_group" = "Var2") %>%
+      dplyr::filter(Freq > 0) %>%
+      dplyr::group_by(dplyr::pick("snv_group")) %>%
+      dplyr::group_split() %>%
+      lapply(function(x) {
+        dplyr::if_else(
+          any(x$groups %in% normal_clusters),
+          x$snv_group[1],
+          NA
+        )
+      }) %>%
+      unlist() %>%
+      stats::na.omit() %>%
+      as.character()
+
+    if (length(norm_snv_groups) > 0) {
+      # if tree_group contains the control, then rename it to "normal"
+      # and label the other group(s) as "tumor"
+      sobject@meta.data[[tumor_call_column]] <-
+        dplyr::if_else(
+          sobject@meta.data[[snv_group_col]] %in% norm_snv_groups,
+          "normal",
+          dplyr::if_else(
+            is.na(sobject@meta.data[[snv_group_col]]),
+            "unknown",
+            "tumor"
+          )
+        )
+    } else {
+      stop(
+        "No normal clusters found, check the normal_clusters argument",
+        " and make sure you are specifying the right groups."
+      )
+    }
+  }
+
+  return(sobject)
 }

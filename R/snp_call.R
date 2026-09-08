@@ -64,204 +64,206 @@
 #' \dontrun{
 #' placeholder for now
 #' }
-get_snp_tree <- function(cellid_bam_table,
-                         temp_dir = tempfile(pattern = "tempdir"),
-                         output_dir,
-                         output_base_name = "hier_tree",
-                         log_base = "jobOut",
-                         job_base = "sbatch_",
-                         account = "gdrobertslab",
-                         ploidy,
-                         ref_fasta,
-                         min_depth = 5,
-                         min_snvs_per_cluster = 250,
-                         max_prop_missing_at_site = 0.75,
-                         n_bootstraps = 10000,
-                         bootstrap_cutoff = 0.95,
-                         dist_method = "binary",
-                         tree_image_type = "png",
-                         verbose = TRUE,
-                         submit = TRUE,
-                         cleanup = TRUE,
-                         other_job_header_options  = "",
-                         other_batch_options = "",
-                         sge_q = "all.q",
-                         sge_parallel_environment = "thread",
-                         job_scheduler = "slurm") {
-    check_cellid_bam_table(cellid_bam_table)
+get_snp_tree <- function(
+  cellid_bam_table,
+  temp_dir = tempfile(pattern = "tempdir"),
+  output_dir,
+  output_base_name = "hier_tree",
+  log_base = "jobOut",
+  job_base = "sbatch_",
+  account = "gdrobertslab",
+  ploidy,
+  ref_fasta,
+  min_depth = 5,
+  min_snvs_per_cluster = 250,
+  max_prop_missing_at_site = 0.75,
+  n_bootstraps = 10000,
+  bootstrap_cutoff = 0.95,
+  dist_method = "binary",
+  tree_image_type = "png",
+  verbose = TRUE,
+  submit = TRUE,
+  cleanup = TRUE,
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q = "all.q",
+  sge_parallel_environment = "thread",
+  job_scheduler = "slurm"
+) {
+  check_cellid_bam_table(cellid_bam_table)
 
-    # Confirm that required arguments are provided
-    if (missing(output_dir)) {
-        stop("output_dir argument is required")
+  # Confirm that required arguments are provided
+  if (missing(output_dir)) {
+    stop("output_dir argument is required")
+  }
+  if (missing(ploidy)) {
+    stop("ploidy argument is required")
+  }
+  if (missing(ref_fasta)) {
+    stop("ref_fasta argument is required")
+  }
+
+  ## Check that the conda command is available
+  check_cmd("conda")
+  # Check that conda environment scanBit_xkcd_1337 exists, and if not,
+  # create it
+  confirm_conda_env()
+
+  # Check that temp_dir exists, and if not, create it
+  if (!dir.exists(temp_dir)) {
+    dir.create(temp_dir, recursive = TRUE)
+  }
+  message("Using temporary directory: ", temp_dir)
+
+  bam_files <- unique(cellid_bam_table$bam_file)
+
+  parallel::mclapply(
+    seq_len(length(bam_files)),
+    mc.cores = length(bam_files),
+    mc.preschedule = FALSE,
+    function(i) {
+      bam_name <- bam_files[i]
+
+      sub_cellid_bam_table <-
+        cellid_bam_table %>%
+        dplyr::filter(bam_file == bam_name) %>%
+        dplyr::select(cell_barcode, cell_group)
+
+      call_snps(
+        cellid_bam_table = sub_cellid_bam_table,
+        bam_to_use = bam_name,
+        bcf_dir = file.path(
+          temp_dir,
+          paste0("split_bcfs_", i)
+        ),
+        log_base = log_base,
+        job_base = job_base,
+        account = account,
+        ploidy = ploidy,
+        min_depth = min_depth,
+        ref_fasta = ref_fasta,
+        temp_dir = temp_dir,
+        submit = submit,
+        cleanup = cleanup,
+        other_job_header_options = other_job_header_options,
+        other_batch_options = other_batch_options,
+        sge_q = sge_q,
+        sge_parallel_environment = sge_parallel_environment,
+        job_scheduler = job_scheduler
+      )
     }
-    if (missing(ploidy)) {
-        stop("ploidy argument is required")
+  )
+
+  # The output from the previous step is a folder for each bam file located
+  # in temp_dir/split_bcfs_{i}_c{min_depth}/. Next merge all the bcf files and
+  # calculate a distance matrix using my slow python script
+  # We do this separately for each min_depth provided
+
+  parallel::mclapply(
+    min_depth,
+    mc.cores = 100,
+    mc.preschedule = FALSE,
+    function(this_min_depth) {
+      merge_bcfs(
+        bcf_in_dir = file.path(
+          temp_dir,
+          paste0(
+            "split_bcfs_[0-9]*_c",
+            this_min_depth
+          )
+        ),
+        out_bcf = file.path(
+          output_dir,
+          paste0(
+            "merged",
+            output_base_name,
+            "_c",
+            this_min_depth,
+            ".bcf"
+          )
+        ),
+        submit = submit,
+        log_base = log_base,
+        job_base = job_base,
+        account = account,
+        temp_dir = temp_dir,
+        cleanup = cleanup,
+        other_job_header_options = other_job_header_options,
+        other_batch_options = other_batch_options,
+        sge_q = sge_q,
+        sge_parallel_environment = sge_parallel_environment,
+        job_scheduler = job_scheduler
+      )
     }
-    if (missing(ref_fasta)) {
-        stop("ref_fasta argument is required")
+  )
+
+  # Read in the merged bcf and make a tree for each min_depth
+  # Number of cores doesn't matter here, we're just submitting slurm jobs
+  parallel::mclapply(
+    min_depth,
+    mc.cores = 101,
+    mc.preschedule = FALSE,
+    function(this_min_depth) {
+      group_clusters_by_dist(
+        merged_bcf_file = file.path(
+          output_dir,
+          paste0(
+            "merged",
+            output_base_name,
+            "_c",
+            this_min_depth,
+            ".bcf"
+          )
+        ),
+        output_file = file.path(
+          output_dir,
+          paste0(
+            output_base_name,
+            "_",
+            this_min_depth,
+            "_groups.txt"
+          )
+        ),
+        min_snvs_per_cluster = min_snvs_per_cluster,
+        max_prop_missing_at_site = max_prop_missing_at_site,
+        n_bootstraps = n_bootstraps,
+        bootstrap_cutoff = bootstrap_cutoff,
+        dist_method = dist_method,
+        tree_figure_file = file.path(
+          output_dir,
+          paste0(
+            output_base_name,
+            "_",
+            this_min_depth,
+            "_tree.",
+            tree_image_type
+          )
+        ),
+        n_comps_file = file.path(
+          output_dir,
+          paste0(
+            output_base_name,
+            "_",
+            this_min_depth,
+            "_n_comps.txt"
+          )
+        ),
+        verbose = verbose,
+        job_base = job_base,
+        account = account,
+        log_base = log_base,
+        temp_dir = temp_dir,
+        submit = submit,
+        other_job_header_options = other_job_header_options,
+        other_batch_options = other_batch_options,
+        sge_q = sge_q,
+        sge_parallel_environment = sge_parallel_environment,
+        job_scheduler = job_scheduler
+      )
     }
+  )
 
-    ## Check that the conda command is available
-    check_cmd("conda")
-    # Check that conda environment scanBit_xkcd_1337 exists, and if not,
-    # create it
-    confirm_conda_env()
-
-    # Check that temp_dir exists, and if not, create it
-    if (!dir.exists(temp_dir)) {
-        dir.create(temp_dir, recursive = TRUE)
-    }
-    message("Using temporary directory: ", temp_dir)
-
-    bam_files <- unique(cellid_bam_table$bam_file)
-
-    parallel::mclapply(
-        seq_len(length(bam_files)),
-        mc.cores = length(bam_files),
-        mc.preschedule = FALSE,
-        function(i) {
-            bam_name <- bam_files[i]
-
-            sub_cellid_bam_table <-
-                cellid_bam_table %>%
-                dplyr::filter(bam_file == bam_name) %>%
-                dplyr::select(cell_barcode, cell_group)
-
-            call_snps(
-                cellid_bam_table = sub_cellid_bam_table,
-                bam_to_use = bam_name,
-                bcf_dir = file.path(
-                    temp_dir,
-                    paste0("split_bcfs_", i)
-                ),
-                log_base = log_base,
-                job_base = job_base,
-                account = account,
-                ploidy = ploidy,
-                min_depth = min_depth,
-                ref_fasta = ref_fasta,
-                temp_dir = temp_dir,
-                submit = submit,
-                cleanup = cleanup,
-                other_job_header_options = other_job_header_options,
-                other_batch_options = other_batch_options,
-                sge_q = sge_q,
-                sge_parallel_environment = sge_parallel_environment,
-                job_scheduler = job_scheduler
-            )
-        })
-
-    # The output from the previous step is a folder for each bam file located
-    # in temp_dir/split_bcfs_{i}_c{min_depth}/. Next merge all the bcf files and
-    # calculate a distance matrix using my slow python script
-    # We do this separately for each min_depth provided
-
-    parallel::mclapply(
-        min_depth,
-        mc.cores = 100,
-        mc.preschedule = FALSE,
-        function(this_min_depth) {
-            merge_bcfs(
-                bcf_in_dir = file.path(
-                    temp_dir,
-                    paste0(
-                        "split_bcfs_[0-9]*_c",
-                        this_min_depth
-                    )
-                ),
-                out_bcf = file.path(
-                    output_dir,
-                    paste0(
-                        "merged",
-                        output_base_name,
-                        "_c",
-                        this_min_depth,
-                        ".bcf"
-                    )
-                ),
-                submit = submit,
-                log_base = log_base,
-                job_base = job_base,
-                account = account,
-                temp_dir = temp_dir,
-                cleanup = cleanup,
-                other_job_header_options = other_job_header_options,
-                other_batch_options = other_batch_options,
-                sge_q = sge_q,
-                sge_parallel_environment = sge_parallel_environment,
-                job_scheduler = job_scheduler
-            )
-    })
-
-    # Read in the merged bcf and make a tree for each min_depth
-    # Number of cores doesn't matter here, we're just submitting slurm jobs
-    parallel::mclapply(
-        min_depth,
-        mc.cores = 101,
-        mc.preschedule = FALSE,
-        function(this_min_depth) {
-            group_clusters_by_dist(
-                merged_bcf_file =
-                    file.path(
-                        output_dir,
-                        paste0(
-                            "merged",
-                            output_base_name,
-                            "_c",
-                            this_min_depth,
-                            ".bcf"
-                        )
-                    ),
-                output_file =
-                    file.path(
-                        output_dir,
-                        paste0(
-                            output_base_name,
-                            "_",
-                            this_min_depth,
-                            "_groups.txt"
-                        )
-                    ),
-                min_snvs_per_cluster = min_snvs_per_cluster,
-                max_prop_missing_at_site = max_prop_missing_at_site,
-                n_bootstraps = n_bootstraps,
-                bootstrap_cutoff = bootstrap_cutoff,
-                dist_method = dist_method,
-                tree_figure_file =
-                    file.path(
-                        output_dir,
-                        paste0(
-                            output_base_name,
-                            "_",
-                            this_min_depth,
-                            "_tree.",
-                            tree_image_type
-                        )
-                    ),
-                n_comps_file = file.path(
-                    output_dir,
-                    paste0(
-                        output_base_name,
-                        "_",
-                        this_min_depth,
-                        "_n_comps.txt"
-                    )
-                ),
-                verbose = verbose,
-                job_base = job_base,
-                account = account,
-                log_base = log_base,
-                temp_dir = temp_dir,
-                submit = submit,
-                other_job_header_options = other_job_header_options,
-                other_batch_options = other_batch_options,
-                sge_q = sge_q,
-                sge_parallel_environment = sge_parallel_environment,
-                job_scheduler = job_scheduler
-            )
-    })
-
-    return(TRUE)
+  return(TRUE)
 }
 
 #' Call SNPs for a single bam file
@@ -276,131 +278,118 @@ get_snp_tree <- function(cellid_bam_table,
 #' @details GRCh37 is hg19, GRCh38 is hg38, X, Y, 1, mm10_hg19 is our mixed
 #'
 #' @noRd
-call_snps <- function(cellid_bam_table,
-                      bam_to_use,
-                      bcf_dir,
-                      log_base,
-                      job_base,
-                      account,
-                      ploidy,
-                      ref_fasta,
-                      min_depth,
-                      temp_dir,
-                      submit = TRUE,
-                      cleanup = TRUE,
-                      other_job_header_options = "",
-                      other_batch_options = "",
-                      sge_q,
-                      sge_parallel_environment,
-                      job_scheduler = "slurm") {
-    if (!file.exists(bam_to_use)) {
-        stop("Bam file does not exist: ", bam_to_use)
-    }
+call_snps <- function(
+  cellid_bam_table,
+  bam_to_use,
+  bcf_dir,
+  log_base,
+  job_base,
+  account,
+  ploidy,
+  ref_fasta,
+  min_depth,
+  temp_dir,
+  submit = TRUE,
+  cleanup = TRUE,
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler = "slurm"
+) {
+  if (!file.exists(bam_to_use)) {
+    stop("Bam file does not exist: ", bam_to_use)
+  }
 
-    job_header_other <-
-        make_header_other_string(other_job_header_options, job_scheduler)
+  job_header_other <-
+    make_header_other_string(other_job_header_options, job_scheduler)
 
-    # write out the cell ids to files with two columns: cell_id, cell_group
-    return_values <-
-        dplyr::select(cellid_bam_table, cell_barcode, cell_group) |>
-        dplyr::group_by(cell_group) |>
-        dplyr::group_split() |>
-        lapply(
-            function(x) {
-                x |>
-                    dplyr::select(cell_barcode) |>
-                    readr::write_tsv(
-                        file = file.path(
-                            temp_dir,
-                            paste0(x$cell_group[1], "_cell_ids.txt")
-                        ),
-                        col_names = FALSE,
-                        progress = FALSE
-                    )
-                return()
-            }
+  # write out the cell ids to files with two columns: cell_id, cell_group
+  return_values <-
+    dplyr::select(cellid_bam_table, cell_barcode, cell_group) |>
+    dplyr::group_by(cell_group) |>
+    dplyr::group_split() |>
+    lapply(
+      function(x) {
+        x |>
+          dplyr::select(cell_barcode) |>
+          readr::write_tsv(
+            file = file.path(
+              temp_dir,
+              paste0(x$cell_group[1], "_cell_ids.txt")
+            ),
+            col_names = FALSE,
+            progress = FALSE
+          )
+        return()
+      }
+    )
+
+  cell_files <-
+    file.path(
+      temp_dir,
+      paste0(unique(cellid_bam_table$cell_group), "_cell_ids.txt")
+    )
+
+  array_max <-
+    length(cell_files) - 1
+
+  if (job_scheduler == "sge") {
+    # SGE arrays start at 1, not zero :-|
+    array_max <- array_max + 1
+  }
+
+  ploidy <- pick_ploidy(ploidy)
+
+  # Since min_depth can be a vector of unknown length, we are going to loop
+  # through each element and call mpileup on each bam
+  # Due to this, we need to append the min_depth used to the output bcf folder
+  # Since this is just submitting slurm jobs, we don't need to worry about
+  # how many cores we use
+  if (job_scheduler == "bash") {
+    n_cores <- 1
+  } else {
+    n_cores <- 100
+  }
+  parallel::mclapply(
+    min_depth,
+    mc.cores = n_cores,
+    mc.preschedule = FALSE,
+    function(this_min_depth) {
+      replace_tibble_snp <-
+        tibble::tribble(
+          ~find                          , ~replace                                                                                  ,
+          "placeholder_account"          , account                                                                                   ,
+          "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_mpileup-", get_job_id_str(job_scheduler), ".out")) ,
+          "placeholder_sge_q"            , sge_q                                                                                     ,
+          "placeholder_sge_thread"       , sge_parallel_environment                                                                  ,
+          "placeholder_job_header_other" , job_header_other                                                                          ,
+          "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                              ,
+          "placeholder_array_max"        , as.character(array_max)                                                                   ,
+          "placeholder_bam_file"         , bam_to_use                                                                                ,
+          "placeholder_cell_files"       , paste(cell_files, collapse = " ")                                                         ,
+          "placeholder_ref_fasta"        , ref_fasta                                                                                 ,
+          "placeholder_ploidy"           , ploidy                                                                                    ,
+          "placeholder_bcf_dir"          , paste0(bcf_dir, "_c", this_min_depth)                                                     ,
+          "placeholder_min_depth"        , as.character(this_min_depth)
         )
 
-    cell_files <-
-        file.path(
-            temp_dir,
-            paste0(unique(cellid_bam_table$cell_group), "_cell_ids.txt")
+      # Call mpileup on each bam using a template and substituting
+      # out the placeholder fields and index the individual bcf files
+      result <-
+        use_job_template(
+          replace_tibble_snp,
+          "snp_call_mpileup_template.sh",
+          warning_label = "Calling SNPs",
+          submit = submit,
+          file_dir = temp_dir,
+          temp_prefix = paste0(job_base, "mpileup_"),
+          job_scheduler = job_scheduler
         )
-
-    array_max <-
-        length(cell_files) - 1
-    
-    if (job_scheduler == "sge") {
-        # SGE arrays start at 1, not zero :-|
-        array_max <- array_max + 1
     }
+  )
 
-    ploidy <- pick_ploidy(ploidy)
-
-    # Since min_depth can be a vector of unknown length, we are going to loop
-    # through each element and call mpileup on each bam
-    # Due to this, we need to append the min_depth used to the output bcf folder
-    # Since this is just submitting slurm jobs, we don't need to worry about
-    # how many cores we use
-    if (job_scheduler == "bash") {
-        n_cores <- 1
-    } else {
-        n_cores <- 100
-    }
-    parallel::mclapply(min_depth,
-                       mc.cores = n_cores,
-                       mc.preschedule = FALSE,
-                       function(this_min_depth) {
-
-        replace_tibble_snp <-
-            tibble::tribble(
-                ~find,                          ~replace,
-                "placeholder_account",          account,
-                "placeholder_job_log",          file.path(
-                                                    temp_dir,
-                                                    paste0(
-                                                        log_base,
-                                                        "_mpileup-",
-                                                        get_job_id_str(job_scheduler),
-                                                        ".out"
-                                                    )
-                                                ),
-                "placeholder_sge_q",            sge_q,
-                "placeholder_sge_thread",       sge_parallel_environment,
-                "placeholder_job_header_other", job_header_other,
-                "placeholder_batch_other",      paste0(
-                                                    other_batch_options,
-                                                    collapse = "\n"
-                                                ),
-                "placeholder_array_max",        as.character(array_max),
-                "placeholder_bam_file",         bam_to_use,
-                "placeholder_cell_files",       paste(
-                                                    cell_files,
-                                                    collapse = " "
-                                                ),
-                "placeholder_ref_fasta",        ref_fasta,
-                "placeholder_ploidy",           ploidy,
-                "placeholder_bcf_dir",          paste0(
-                                                    bcf_dir,
-                                                    "_c",
-                                                    this_min_depth
-                                                ),
-                "placeholder_min_depth",        as.character(this_min_depth)
-            )
-
-        # Call mpileup on each bam using a template and substituting
-        # out the placeholder fields and index the individual bcf files
-        result <-
-            use_job_template(replace_tibble_snp,
-                             "snp_call_mpileup_template.sh",
-                             warning_label = "Calling SNPs",
-                             submit = submit,
-                             file_dir = temp_dir,
-                             temp_prefix = paste0(job_base, "mpileup_"),
-                             job_scheduler = job_scheduler)
-        })
-
-    return(0)
+  return(0)
 }
 
 #' Transform the ploidy argument into a valid argument for bcftools
@@ -416,33 +405,38 @@ call_snps <- function(cellid_bam_table,
 #'
 #' @noRd
 pick_ploidy <- function(ploidy) {
-    if (file.exists(ploidy)) {
-        return(paste("--ploidy-file", ploidy))
-    } else if (file.exists(file.path(find.package("scanBit"),
-                                     "extdata",
-                                     paste0(ploidy, "_ploidy.txt")
-                                     ))) {
-        return(
-            paste0(
-                "--ploidy-file ",
-                file.path(
-                    find.package("scanBit"),
-                    paste0(
-                        "/extdata/",
-                        ploidy,
-                        "_ploidy.txt"
-                    )
-                )
-            )
+  if (file.exists(ploidy)) {
+    return(paste("--ploidy-file", ploidy))
+  } else if (
+    file.exists(file.path(
+      find.package("scanBit"),
+      "extdata",
+      paste0(ploidy, "_ploidy.txt")
+    ))
+  ) {
+    return(
+      paste0(
+        "--ploidy-file ",
+        file.path(
+          find.package("scanBit"),
+          paste0(
+            "/extdata/",
+            ploidy,
+            "_ploidy.txt"
+          )
         )
-    } else if (ploidy %in% c("GRCh37", "GRCh38", "X", "Y", "1")) {
-        return(paste("--ploidy", ploidy))
-    } else {
-        warning("Ploidy argument not valid. Did you mean to pass a file path",
-                " or spell something wrong?",
-                immediate. = TRUE)
-        stop()
-    }
+      )
+    )
+  } else if (ploidy %in% c("GRCh37", "GRCh38", "X", "Y", "1")) {
+    return(paste("--ploidy", ploidy))
+  } else {
+    warning(
+      "Ploidy argument not valid. Did you mean to pass a file path",
+      " or spell something wrong?",
+      immediate. = TRUE
+    )
+    stop()
+  }
 }
 
 #' Merge bcfs generated by call_snps() and write out a distance matrix
@@ -454,64 +448,57 @@ pick_ploidy <- function(ploidy) {
 #' @return 0 if successful
 #'
 #' @noRd
-merge_bcfs <- function(bcf_in_dir,
-                       out_bcf,
-                       submit = TRUE,
-                       account = "gdrobertslab",
-                       log_base = "jobOut",
-                       job_base = "sbatch_",
-                       temp_dir,
-                       cleanup = TRUE,
-                       other_job_header_options = "",
-                       other_batch_options = "",
-                       sge_q,
-                       sge_parallel_environment,
-                       job_scheduler = "slurm") {
-    job_header_other <-
-        make_header_other_string(other_job_header_options, job_scheduler)
+merge_bcfs <- function(
+  bcf_in_dir,
+  out_bcf,
+  submit = TRUE,
+  account = "gdrobertslab",
+  log_base = "jobOut",
+  job_base = "sbatch_",
+  temp_dir,
+  cleanup = TRUE,
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler = "slurm"
+) {
+  job_header_other <-
+    make_header_other_string(other_job_header_options, job_scheduler)
 
-    # use template to merge bcfs and write out a distance matrix, substituting
-    # out the placeholder fields
-    replace_tibble_merge <-
-        tibble::tribble(
-            ~find,                          ~replace,
-            "placeholder_account",          account,
-            "placeholder_job_log",          file.path(
-                                                temp_dir,
-                                                paste0(
-                                                    log_base,
-                                                    "_merge-",
-                                                    get_job_id_str(job_scheduler),
-                                                    ".out"
-                                                )
-                                            ),
-            "placeholder_sge_q",            sge_q,
-            "placeholder_sge_thread",       sge_parallel_environment,
-            "placeholder_job_header_other", job_header_other,
-            "placeholder_batch_other",      paste0(
-                                                other_batch_options,
-                                                collapse = "\n"
-                                            ),
-            "placeholder_bcf_out",          out_bcf,
-            "placeholder_bcf_dir",          bcf_in_dir
-        )
+  # use template to merge bcfs and write out a distance matrix, substituting
+  # out the placeholder fields
+  replace_tibble_merge <-
+    tibble::tribble(
+      ~find                          , ~replace                                                                                ,
+      "placeholder_account"          , account                                                                                 ,
+      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_merge-", get_job_id_str(job_scheduler), ".out")) ,
+      "placeholder_sge_q"            , sge_q                                                                                   ,
+      "placeholder_sge_thread"       , sge_parallel_environment                                                                ,
+      "placeholder_job_header_other" , job_header_other                                                                        ,
+      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                            ,
+      "placeholder_bcf_out"          , out_bcf                                                                                 ,
+      "placeholder_bcf_dir"          , bcf_in_dir
+    )
 
-    # Call mpileup merge using a template and substituting
-    # out the placeholder fields and index the individual bcf files
-    result <-
-        use_job_template(replace_tibble_merge,
-                         "snp_call_merge_template.sh",
-                         warning_label = "Merging bcfs",
-                         submit = submit,
-                         file_dir = temp_dir,
-                         temp_prefix = paste0(job_base, "merge_"),
-                         job_scheduler = job_scheduler)
+  # Call mpileup merge using a template and substituting
+  # out the placeholder fields and index the individual bcf files
+  result <-
+    use_job_template(
+      replace_tibble_merge,
+      "snp_call_merge_template.sh",
+      warning_label = "Merging bcfs",
+      submit = submit,
+      file_dir = temp_dir,
+      temp_prefix = paste0(job_base, "merge_"),
+      job_scheduler = job_scheduler
+    )
 
-    # remove individual bcf files
-    if (cleanup) {
-        unlink(bcf_in_dir, recursive = TRUE)
-    }
-    return(0)
+  # remove individual bcf files
+  if (cleanup) {
+    unlink(bcf_in_dir, recursive = TRUE)
+  }
+  return(0)
 }
 
 #' Use Phylogenetic Tree from Merged BCF File to Find Similar Clusters
@@ -543,83 +530,72 @@ merge_bcfs <- function(bcf_in_dir,
 #'
 #' @export
 group_clusters_by_dist <- function(
-    merged_bcf_file,
-    output_file = paste0(merged_bcf_file, "_groups.txt"),
-    min_snvs_per_cluster = 500,
-    max_prop_missing_at_site = 0.9,
-    n_bootstraps = 1000,
-    bootstrap_cutoff = 0.99,
-    dist_method,
-    tree_figure_file,
-    n_comps_file,
-    verbose = TRUE,
-    job_base = "job_dist",
-    account = "gdrobertslab",
-    log_base = "jobOut",
-    temp_dir = tempdir(),
-    submit = TRUE,
-    other_job_header_options = "",
-    other_batch_options = "",
-    sge_q,
-    sge_parallel_environment,
-    job_scheduler = "slurm") {
-    py_file <-
-        paste0(find.package("scanBit"),
-               "/exec/vcfToMatrix.py")
+  merged_bcf_file,
+  output_file = paste0(merged_bcf_file, "_groups.txt"),
+  min_snvs_per_cluster = 500,
+  max_prop_missing_at_site = 0.9,
+  n_bootstraps = 1000,
+  bootstrap_cutoff = 0.99,
+  dist_method,
+  tree_figure_file,
+  n_comps_file,
+  verbose = TRUE,
+  job_base = "job_dist",
+  account = "gdrobertslab",
+  log_base = "jobOut",
+  temp_dir = tempdir(),
+  submit = TRUE,
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler = "slurm"
+) {
+  py_file <-
+    paste0(find.package("scanBit"), "/exec/vcfToMatrix.py")
 
-    verbose_setting <-
-        dplyr::if_else(verbose, "--verbose", "")
+  verbose_setting <-
+    dplyr::if_else(verbose, "--verbose", "")
 
-    job_header_other <-
-        make_header_other_string(other_job_header_options, job_scheduler)
+  job_header_other <-
+    make_header_other_string(other_job_header_options, job_scheduler)
 
-    replace_tibble_dist <-
-        tibble::tribble(
-            ~find,                              ~replace,
-            "placeholder_account",              account,
-            "placeholder_job_log",              paste0(
-                                                    temp_dir, "/",
-                                                    log_base,
-                                                    "dist-",
-                                                    get_job_id_str(job_scheduler),
-                                                    ".out"
-                                                ),
-            "placeholder_sge_q",            sge_q,
-            "placeholder_sge_thread",       sge_parallel_environment,
-            "placeholder_job_header_other",     job_header_other,
-            "placeholder_batch_other",          paste0(
-                                                    other_batch_options,
-                                                    collapse = "\n"
-                                                ),
-            "placeholder_py_script",            py_file,
-            "placeholder_bcf_input",            merged_bcf_file,
-            "placeholder_min_snvs",             as.character(
-                                                    min_snvs_per_cluster
-                                                ),
-            "placeholder_max_missing",          as.character(
-                                                    max_prop_missing_at_site
-                                                ),
-            "placeholder_n_bootstrap",          as.character(n_bootstraps),
-            "placeholder_bootstrap_threshold",  as.character(bootstrap_cutoff),
-            "placeholder_n_comps_file",         n_comps_file,
-            "placeholder_fig_file",             tree_figure_file,
-            "placeholder_verbose",              verbose_setting,
-            "placeholder_dist_method",          dist_method,
-            "placeholder_groups_output",        output_file
-        )
+  replace_tibble_dist <-
+    tibble::tribble(
+      ~find                             , ~replace                                                                        ,
+      "placeholder_account"             , account                                                                         ,
+      "placeholder_job_log"             , paste0(temp_dir, "/", log_base, "dist-", get_job_id_str(job_scheduler), ".out") ,
+      "placeholder_sge_q"               , sge_q                                                                           ,
+      "placeholder_sge_thread"          , sge_parallel_environment                                                        ,
+      "placeholder_job_header_other"    , job_header_other                                                                ,
+      "placeholder_batch_other"         , paste0(other_batch_options, collapse = "\n")                                    ,
+      "placeholder_py_script"           , py_file                                                                         ,
+      "placeholder_bcf_input"           , merged_bcf_file                                                                 ,
+      "placeholder_min_snvs"            , as.character(min_snvs_per_cluster)                                              ,
+      "placeholder_max_missing"         , as.character(max_prop_missing_at_site)                                          ,
+      "placeholder_n_bootstrap"         , as.character(n_bootstraps)                                                      ,
+      "placeholder_bootstrap_threshold" , as.character(bootstrap_cutoff)                                                  ,
+      "placeholder_n_comps_file"        , n_comps_file                                                                    ,
+      "placeholder_fig_file"            , tree_figure_file                                                                ,
+      "placeholder_verbose"             , verbose_setting                                                                 ,
+      "placeholder_dist_method"         , dist_method                                                                     ,
+      "placeholder_groups_output"       , output_file
+    )
 
-    # Call mpileup on each cell id file using a template and substituting
-    # out the placeholder fields and index the individual bcf files
-    result <-
-        use_job_template(replace_tibble_dist,
-                         "vcf_to_matrix.sh",
-                         warning_label = "Calculating distance from BCF",
-                         submit = submit,
-                         file_dir = temp_dir,
-                         temp_prefix = paste0(job_base, "_dist"),
-                         job_scheduler = job_scheduler)
+  # Call mpileup on each cell id file using a template and substituting
+  # out the placeholder fields and index the individual bcf files
+  result <-
+    use_job_template(
+      replace_tibble_dist,
+      "vcf_to_matrix.sh",
+      warning_label = "Calculating distance from BCF",
+      submit = submit,
+      file_dir = temp_dir,
+      temp_prefix = paste0(job_base, "_dist"),
+      job_scheduler = job_scheduler
+    )
 
-    return(result)
+  return(result)
 }
 
 #' Use the metadata in a Seurat object to determine which clusters are
@@ -636,20 +612,24 @@ group_clusters_by_dist <- function(
 #' @return A vector of cluster names that are predominantly control cell types
 #'
 #' @export
-match_celltype_clusters <- function(sobject,
-                                    normal_celltypes,
-                                    cluster_col,
-                                    celltype_col,
-                                    min_prop_control = 0.5) {
+match_celltype_clusters <- function(
+  sobject,
+  normal_celltypes,
+  cluster_col,
+  celltype_col,
+  min_prop_control = 0.5
+) {
+  control_clusters <-
+    sobject@meta.data %>%
+    dplyr::select(dplyr::all_of(c(cluster_col, celltype_col))) %>%
+    dplyr::group_by(dplyr::across(dplyr::all_of(cluster_col))) %>%
+    dplyr::filter(
+      sum(get(celltype_col) %in% normal_celltypes) /
+        dplyr::n() >
+        min_prop_control
+    ) %>%
+    dplyr::pull(cluster_col) %>%
+    unique()
 
-    control_clusters <-
-        sobject@meta.data %>%
-        dplyr::select(dplyr::all_of(c(cluster_col, celltype_col))) %>%
-        dplyr::group_by(dplyr::across(dplyr::all_of(cluster_col))) %>%
-        dplyr::filter(sum(get(celltype_col) %in% normal_celltypes) /
-                      dplyr::n() > min_prop_control) %>%
-        dplyr::pull(cluster_col) %>%
-        unique()
-
-    return(control_clusters)
+  return(control_clusters)
 }

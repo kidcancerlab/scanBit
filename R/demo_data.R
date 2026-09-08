@@ -14,12 +14,12 @@ download_demo_data <- function(data_loc = find.package("scanBit")) {
 
   zip_file <- file.path(data_loc, "scanBitTestingData.zip")
 
-  download.file(
+  utils::download.file(
     url = "https://ndownloader.figshare.com/files/68141143",
     destfile = zip_file
   )
 
-  unzip(zip_file, exdir = data_loc)
+  utils::unzip(zip_file, exdir = data_loc)
 
   file.remove(zip_file)
 }
@@ -39,10 +39,10 @@ prep_demo_data <- function(data_loc = find.package("scanBit")) {
   c_b_t_file <- file.path(data_loc, "cell_barcode_table.tsv.gz")
 
   data <-
-    read.delim(c_b_t_file, stringsAsFactors = FALSE) |>
+    utils::read.delim(c_b_t_file, stringsAsFactors = FALSE) |>
     dplyr::mutate(bam_file = paste0(data_loc, "/", bam_file))
 
-  write.table(
+  utils::write.table(
     data,
     gzfile(c_b_t_file),
     quote = FALSE,

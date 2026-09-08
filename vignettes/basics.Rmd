@@ -78,10 +78,11 @@ cell_barcode_table <-
   read.delim(
     file.path(
       find.package("scanBit"),
-      "cell_barcode_table.tsv"
+      "cell_barcode_table.tsv.gz"
     ),
     stringsAsFactors = FALSE
-  )
+  ) %>%
+  as_tibble()
 
 cell_barcode_table
 ```

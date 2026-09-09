@@ -28,7 +28,8 @@ get_snp_tree(
   other_batch_options = "",
   sge_q = "all.q",
   sge_parallel_environment = "thread",
-  job_scheduler = "slurm"
+  job_scheduler = "slurm",
+  allow_chr_mismatch = FALSE
 )
 }
 \arguments{
@@ -109,6 +110,9 @@ job scheduler}
 \item{job_scheduler}{The job scheduler to use. One of "slurm", "sge" or
 "bash". If specifying "sge", sge_q and sge_parallel should be specified if
 defaults are not correct.}
+
+\item{allow_chr_mismatch}{Whether to allow mismatches between the chromosomes
+in the BAM files and the reference genome.}
 }
 \value{
 TRUE if the function succeeded. Output is written to output_dir.

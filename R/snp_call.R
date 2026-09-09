@@ -54,6 +54,8 @@
 #' @param job_scheduler The job scheduler to use. One of "slurm", "sge" or
 #'   "bash". If specifying "sge", sge_q and sge_parallel should be specified if
 #'   defaults are not correct.
+#' @param allow_chr_mismatch Whether to allow mismatches between the chromosomes
+#'   in the BAM files and the reference genome.
 #'
 #' @details See vignette for detailed discussion.
 #'
@@ -88,7 +90,8 @@ get_snp_tree <- function(
   other_batch_options = "",
   sge_q = "all.q",
   sge_parallel_environment = "thread",
-  job_scheduler = "slurm"
+  job_scheduler = "slurm",
+  allow_chr_mismatch = FALSE
 ) {
   check_cellid_bam_table(cellid_bam_table)
 
@@ -116,6 +119,35 @@ get_snp_tree <- function(
   message("Using temporary directory: ", temp_dir)
 
   bam_files <- unique(cellid_bam_table$bam_file)
+
+  # Confirm that the bam files exist
+  for (bam_file in bam_files) {
+    if (!file.exists(bam_file)) {
+      stop("BAM file does not exist: ", bam_file)
+    }
+  }
+
+  # Confirm that the fasta fai index file exists
+  if (!file.exists(paste0(ref_fasta, ".fai"))) {
+    stop("Fasta index file (", paste0(ref_fasta, ".fai"), ") does not exist")
+  }
+
+  # Confirm that the chromosomes in the bam file match the reference fasta
+  check_bam_chromosomes(
+    bam_files = bam_files,
+    ref_fasta = ref_fasta,
+    allow_chr_mismatch = allow_chr_mismatch,
+    job_base = job_base,
+    log_base = log_base,
+    temp_dir = temp_dir,
+    submit = submit,
+    cleanup = cleanup,
+    other_job_header_options = other_job_header_options,
+    other_batch_options = other_batch_options,
+    sge_q = sge_q,
+    sge_parallel_environment = sge_parallel_environment,
+    job_scheduler = job_scheduler
+  )
 
   parallel::mclapply(
     seq_len(length(bam_files)),
@@ -264,6 +296,151 @@ get_snp_tree <- function(
   )
 
   return(TRUE)
+}
+
+#' Check BAM and reference chromosome names
+#'
+#' @inheritParams get_snp_tree
+#'
+#' @return Invisibly returns `NULL` on success. Stops if a BAM contains a
+#'   chromosome absent from the reference and `allow_chr_mismatch` is `FALSE`.
+#'
+#' @noRd
+check_bam_chromosomes <- function(
+  bam_files,
+  ref_fasta,
+  allow_chr_mismatch,
+  job_base,
+  log_base,
+  temp_dir,
+  submit = TRUE,
+  cleanup = TRUE,
+  other_job_header_options = "",
+  other_batch_options = "",
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler = "slurm"
+) {
+  chr_file <-
+    tempfile(pattern = "chr_file_", tmpdir = temp_dir, fileext = ".txt")
+
+  make_chr_file(
+    bam_files,
+    ref_fasta,
+    chr_file,
+    log_base,
+    job_base,
+    temp_dir,
+    submit = TRUE,
+    other_job_header_options,
+    other_batch_options,
+    sge_q,
+    sge_parallel_environment,
+    job_scheduler
+  )
+
+  chr_data <-
+    readr::read_tsv(
+      chr_file,
+      col_names = c("file", "chroms"),
+      show_col_types = FALSE
+    )
+
+  ref_chroms <-
+    chr_data |>
+    dplyr::filter(file == "ref") |>
+    dplyr::pull(chroms) |>
+    strsplit(split = ",") |>
+    unlist()
+
+  bam_chroms <-
+    chr_data |>
+    dplyr::filter(file != "ref") |>
+    dplyr::pull(chroms, name = "file") |>
+    lapply(function(x) strsplit(x, split = ",") |> unlist())
+
+  should_die <- FALSE
+  for (this_bam in names(bam_chroms)) {
+    if (length(setdiff(bam_chroms[[this_bam]], ref_chroms)) > 0) {
+      message(
+        this_bam,
+        " has chroms not in the fasta reference.",
+        "\n\nBam chroms: ",
+        paste(bam_chroms[[this_bam]], collapse = ", "),
+        "\n\nRef chroms: ",
+        paste(ref_chroms, collapse = ", "),
+        "\n\n"
+      )
+      should_die <- TRUE
+    }
+  }
+
+  if (cleanup) {
+    file.remove(chr_file)
+  }
+
+  if (should_die && !allow_chr_mismatch) {
+    stop("Chromosome mismatch between BAM files and the reference genome.")
+  }
+}
+
+#' Create a temporary chromosome-name report
+#'
+#' Submits a scheduler-specific job that writes the chromosome names from the
+#' reference FASTA and BAM files to `chr_file`.
+#'
+#' @inheritParams get_snp_tree
+#' @param chr_file Character path for the chromosome-name report.
+#'
+#' @return Returns `0` after preparing the job.
+#'
+#' @noRd
+make_chr_file <- function(
+  bam_files,
+  ref_fasta,
+  chr_file,
+  job_base,
+  log_base,
+  temp_dir,
+  submit = TRUE,
+  other_job_header_options,
+  other_batch_options,
+  sge_q,
+  sge_parallel_environment,
+  job_scheduler
+) {
+  job_header_other <-
+    make_header_other_string(other_job_header_options, job_scheduler)
+
+  replace_tibble_snp <-
+    tibble::tribble(
+      ~find                          , ~replace                                                                                   ,
+      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_bam_chrs-", get_job_id_str(job_scheduler), ".out")) ,
+      "placeholder_sge_q"            , sge_q                                                                                      ,
+      "placeholder_sge_thread"       , sge_parallel_environment                                                                   ,
+      "placeholder_job_header_other" , job_header_other                                                                           ,
+      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                               ,
+      "placeholder_bam_files"        , paste(bam_files, collapse = " ")                                                           ,
+      "placeholder_ref_fasta"        , ref_fasta                                                                                  ,
+      "placeholder_chr_file"         , chr_file                                                                                   ,
+    )
+
+  # Call mpileup on each bam using a template and substituting
+  # out the placeholder fields and index the individual bcf files
+  if (submit) {
+    result <-
+      use_job_template(
+        replace_tibble_snp,
+        "chr_names_template.sh",
+        warning_label = "Identifying chroms",
+        submit = submit,
+        file_dir = temp_dir,
+        temp_prefix = paste0(job_base, "chroms_"),
+        job_scheduler = job_scheduler
+      )
+  }
+
+  return(0)
 }
 
 #' Call SNPs for a single bam file

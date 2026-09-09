@@ -2,6 +2,7 @@ utils::globalVariables(c(
   ".",
   "avg.exp.scaled",
   "features.plot",
+  "chroms",
   "id",
   "pct.exp",
   "score",

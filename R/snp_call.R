@@ -364,10 +364,10 @@ check_bam_chromosomes <- function(
     if (length(setdiff(bam_chroms[[this_bam]], ref_chroms)) > 0) {
       message(
         this_bam,
-        " has chroms not in the fasta reference.",
-        "\n\nBam chroms: ",
+        " has chromosomes not in the fasta reference.",
+        "\n\nBam chromosomes: ",
         paste(bam_chroms[[this_bam]], collapse = ", "),
-        "\n\nRef chroms: ",
+        "\n\nRef chromosomes: ",
         paste(ref_chroms, collapse = ", "),
         "\n\n"
       )

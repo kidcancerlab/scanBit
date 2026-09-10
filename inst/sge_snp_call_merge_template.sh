@@ -5,7 +5,7 @@
 #$ -l mem_free=10G
 #$ -q placeholder_sge_q
 #$ -pe placeholder_sge_thread 4
-#$ -N placeholder_job_name
+#$ -N merge_bcfs
 #$ -sync y
 placeholder_job_header_other
 

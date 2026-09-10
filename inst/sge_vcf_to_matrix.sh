@@ -5,7 +5,7 @@
 #$ -l mem_free=1G
 #$ -q placeholder_sge_q
 #$ -pe placeholder_sge_thread 10
-#$ -N placeholder_job_name
+#$ -N scanBit_dist
 #$ -sync y
 placeholder_job_header_other
 

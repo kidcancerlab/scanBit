@@ -5,7 +5,7 @@
 #$ -l mem_free=5G
 #$ -q placeholder_sge_q
 #$ -pe placeholder_sge_thread 5
-#$ -N placeholder_job_name
+#$ -N snp_call
 #$ -sync y
 #$ -t 1-placeholder_array_max
 placeholder_job_header_other

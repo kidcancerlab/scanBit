@@ -12,6 +12,7 @@ group_clusters_by_dist(
   n_bootstraps = 1000,
   bootstrap_cutoff = 0.99,
   dist_method,
+  linkage_method,
   tree_figure_file,
   n_comps_file,
   verbose = TRUE,
@@ -52,6 +53,10 @@ proportion of sites that are different between two samples, while the
 euclidian method calculates the euclidian distance between the samples
 based on the proportion of reference alleles at each site. The default is
 "binary".}
+
+\item{linkage_method}{The linkage method to use for hierarchical clustering.
+Can be "single", "complete", "average", "weighted", "centroid", "median",
+or "ward". The default is "ward".}
 
 \item{tree_figure_file}{Character. Path to the output tree figure.}
 

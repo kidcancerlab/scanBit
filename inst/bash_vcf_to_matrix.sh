@@ -17,6 +17,7 @@ python \
         --max_prop_missing placeholder_max_missing \
         --n_bootstrap placeholder_n_bootstrap \
         --bootstrap_threshold placeholder_bootstrap_threshold \
+        --linkage_method placeholder_linkage_method \
         --n_comps_file placeholder_n_comps_file \
         --dist_method placeholder_dist_method \
         --figure_file placeholder_fig_file placeholder_verbose \

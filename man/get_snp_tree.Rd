@@ -20,6 +20,7 @@ get_snp_tree(
   n_bootstraps = 10000,
   bootstrap_cutoff = 0.95,
   dist_method = "binary",
+  linkage_method = "ward",
   tree_image_type = "png",
   verbose = TRUE,
   submit = TRUE,
@@ -81,6 +82,10 @@ proportion of sites that are different between two samples, while the
 euclidian method calculates the euclidian distance between the samples
 based on the proportion of reference alleles at each site. The default is
 "binary".}
+
+\item{linkage_method}{The linkage method to use for hierarchical clustering.
+Can be "single", "complete", "average", "weighted", "centroid", "median",
+or "ward". The default is "ward".}
 
 \item{tree_image_type}{The type of image to use for the tree. Can be "png",
 or "pdf". This will be the file extension used for the tree image file.}

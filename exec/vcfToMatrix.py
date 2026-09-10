@@ -49,6 +49,10 @@ def main():
                         type = float,
                         default = 0.99,
                         help = 'threshold for collapsing clusters')
+    parser.add_argument('--linkage_method',
+                        type = str,
+                        default = 'ward',
+                        help = 'linkage method to use for hierarchical clustering. Options are "single", "complete", "average", "weighted", "centroid", "median", "ward"')
     parser.add_argument('--verbose',
                         action = 'store_true',
                         help = 'print out extra information')
@@ -90,7 +94,8 @@ def main():
 
     write_n_comps_matrix(n_comps_matrix, samples, args.n_comps_file)
 
-    hclust_out = hierarchical_clustering(prop_diff_matrix)
+    hclust_out = hierarchical_clustering(prop_diff_matrix,
+                                         linkage_method = args.linkage_method)
 
     original_cluster_dict = get_cluster_dict(hclust_out, samples)
 
@@ -109,7 +114,8 @@ def main():
             differences,
             samples,
             args.n_bootstrap,
-            threads = args.processes
+            threads = args.processes,
+            linkage_method = args.linkage_method
         )
 
     plt.figure(figsize=(args.fig_width, args.fig_height))
@@ -326,12 +332,12 @@ def get_cluster_dict(hclust, samples):
 
     return cluster_dict
 
-def bootstrap_worker(rand_seed, differences, true_cluster_dict, samples):
+def bootstrap_worker(rand_seed, differences, true_cluster_dict, samples, linkage_method):
     np.random.seed(rand_seed)
     prop_diff_matrix_boot, _ = calc_proportion_dist_matrix(differences,
                                                            bootstrap = True)
 
-    hclust_out_boot = hierarchical_clustering(prop_diff_matrix_boot)
+    hclust_out_boot = hierarchical_clustering(prop_diff_matrix_boot, linkage_method)
 
     boot_cluster_dict = get_cluster_dict(hclust_out_boot, samples)
 
@@ -371,7 +377,8 @@ def calculate_bootstrap_values(true_cluster_dict,
                                differences,
                                samples,
                                n_bootstraps,
-                               threads):
+                               threads,
+                               linkage_method):
     with multiprocessing.Pool(processes=threads) as pool:
         bootstrap_conserved_node_vals = pool.starmap(
             bootstrap_worker,
@@ -379,7 +386,8 @@ def calculate_bootstrap_values(true_cluster_dict,
                 range(n_bootstraps),
                 repeat(differences),
                 repeat(true_cluster_dict),
-                repeat(samples)
+                repeat(samples),
+                repeat(linkage_method)
             )
         )
 

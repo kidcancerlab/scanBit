@@ -34,6 +34,9 @@
 #'   euclidian method calculates the euclidian distance between the samples
 #'   based on the proportion of reference alleles at each site. The default is
 #'   "binary".
+#' @param linkage_method The linkage method to use for hierarchical clustering.
+#'   Can be "single", "complete", "average", "weighted", "centroid", "median",
+#'   or "ward". The default is "ward".
 #' @param tree_image_type The type of image to use for the tree. Can be "png",
 #'   or "pdf". This will be the file extension used for the tree image file.
 #' @param verbose Whether to print out verbose output or not.
@@ -82,6 +85,7 @@ get_snp_tree <- function(
   n_bootstraps = 10000,
   bootstrap_cutoff = 0.95,
   dist_method = "binary",
+  linkage_method = "ward",
   tree_image_type = "png",
   verbose = TRUE,
   submit = TRUE,
@@ -261,6 +265,7 @@ get_snp_tree <- function(
         n_bootstraps = n_bootstraps,
         bootstrap_cutoff = bootstrap_cutoff,
         dist_method = dist_method,
+        linkage_method = linkage_method,
         tree_figure_file = file.path(
           output_dir,
           paste0(
@@ -714,6 +719,7 @@ group_clusters_by_dist <- function(
   n_bootstraps = 1000,
   bootstrap_cutoff = 0.99,
   dist_method,
+  linkage_method,
   tree_figure_file,
   n_comps_file,
   verbose = TRUE,
@@ -752,6 +758,7 @@ group_clusters_by_dist <- function(
       "placeholder_max_missing"         , as.character(max_prop_missing_at_site)                                          ,
       "placeholder_n_bootstrap"         , as.character(n_bootstraps)                                                      ,
       "placeholder_bootstrap_threshold" , as.character(bootstrap_cutoff)                                                  ,
+      "placeholder_linkage_method"      , linkage_method                                                                  ,
       "placeholder_n_comps_file"        , n_comps_file                                                                    ,
       "placeholder_fig_file"            , tree_figure_file                                                                ,
       "placeholder_verbose"             , verbose_setting                                                                 ,

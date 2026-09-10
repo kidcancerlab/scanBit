@@ -230,6 +230,12 @@ def calc_proportion_dist_matrix(differences, bootstrap=False):
                   "the min_snvs_per_cluster value."
         raise Exception(message)
 
+    # This is a "fix" for the situation where two clusters have no shared
+    # variant sites. If that is the case, prop_diff_matrix will have a nan value
+    # for that pair (0/0) and it breaks the hierarchical clustering.
+    # I will need to keep thinking of a better way to handle this.
+    n_comps_matrix[n_comps_matrix == 0] = 1
+
     # Sum up differences while ignoring np.nan values
     sum_differences = np.nansum(differences, axis=0)
     # Calculate the proportion of differences

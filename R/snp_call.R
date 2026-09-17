@@ -34,9 +34,9 @@
 #'   euclidian method calculates the euclidian distance between the samples
 #'   based on the proportion of reference alleles at each site. The default is
 #'   "binary".
-#' @param linkage_method The linkage method to use for hierarchical clustering.
-#'   Can be "single", "complete", "average", "weighted", "centroid", "median",
-#'   or "ward". The default is "ward".
+#' @param linkage_method The linkage method to use for hierarchical clustering
+#'   for calculating the dendrogram. Can be "single", "complete", "average",
+#'   "weighted", "centroid", "median", or "ward". The default is "ward".
 #' @param tree_image_type The type of image to use for the tree. Can be "png",
 #'   or "pdf". This will be the file extension used for the tree image file.
 #' @param verbose Whether to print out verbose output or not.

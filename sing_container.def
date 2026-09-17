@@ -111,6 +111,8 @@ From: rocker/r-ver:4.6.0
     # Ensure quarto, rv, and conda/python binaries are in the path
     export LC_ALL=C
     export PATH=/opt/miniforge/bin:/usr/local/bin:$PATH
+    # Put everything in the conda environment into path to allow for use without activation
+    export PATH=/opt/miniforge/envs/scanBit_xkcd_1337/bin:$PATH
     export RV_CACHE_DIR=/cache/rv
 
 %test

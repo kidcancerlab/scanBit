@@ -167,7 +167,8 @@ snp_tree <-
       "ml miniforge3",
       'eval "$(conda shell.bash hook)"',
       "echo Doing stuff!"
-    )
+    ),
+    use_apptainer = TRUE
   )
 
 end_time <- Sys.time()
@@ -235,49 +236,31 @@ If you are not on a distributed computational environment, you can also just run
 
 Replace the placeholder path/to/references/10x-hg38/fasta/genome.fa with the path to your hg38 reference.
 ```{r bash_scanbit, eval=FALSE}
-hg38_ref_fasta <- "path/to/references/10x-hg38/fasta/genome.fa"
+my_genome_reference <- file.path(find.package("scanBit"), "mm10_chr19_plus.fa")
 
 snp_tree <-
   get_snp_tree(
     cellid_bam_table = cell_barcode_table,
-    temp_dir = "output/temp",
-    ploidy = "GRCh38",
-    output_dir = "output",
-    output_base_name = "test_two_sobj",
-    ref_fasta = hg38_ref_fasta,
-    min_depth = c(5, 10, 20),
-    job_base = "two_sobj",
-    min_snvs_per_cluster = 250,
+    temp_dir = "output/temp_bash",
+    ploidy = "mm10",
+    output_dir = "output_bash",
+    output_base_name = "bash_test_two_strains",
+    ref_fasta = my_genome_reference,
+    min_depth = c(10, 20),
+    job_base = "test_two_strains",
+    min_snvs_per_cluster = 100, # making this low for demo data - 250 is better
     max_prop_missing_at_site = 0.75,
-    cleanup = FALSE,
+    cleanup = FALSE, # Leaving the intermediate files for inspection
     other_batch_options = c( # Just here as examples of things you might put
       "module purge",
       "module load miniforge3",
       'eval "$(conda shell.bash hook)"',
       "echo Doing stuff!"
     ),
-    job_scheduler = "bash",
-    submit = TRUE
+    job_scheduler = "bash", ######## Use bash #########
+    use_apptainer = TRUE
   )
 ```
-
-## Run using singularity
-```{bash getsing, eval=FALSE}
-singularity pull oras://ghcr.io/kidcancerlab/sing_container:4564f50
-
-singularity shell \
-  --no-home \
-  --cleanenv \
-  --home "$(pwd):/project" \
-  --bind $(pwd):/project \
-  sing_container_4564f50.sif
-```
-
-### This is run inside the singularity container
-```{bash singularity_run, eval=FALSE}
-cd /project
-```
-
 
 ## Adding the results back into your Seurat object and plotting them
 

@@ -225,8 +225,7 @@ snp_tree <-
     ),
     sge_q = "all.q",
     sge_parallel_environment = "smp",
-    job_scheduler = "sge",
-    submit = FALSE # This is just here so I can test things
+    job_scheduler = "sge"
   )
 ```
 
@@ -241,7 +240,7 @@ my_genome_reference <- file.path(find.package("scanBit"), "mm10_chr19_plus.fa")
 snp_tree <-
   get_snp_tree(
     cellid_bam_table = cell_barcode_table,
-    temp_dir = "output/temp_bash",
+    temp_dir = "output_bash/temp",
     ploidy = "mm10",
     output_dir = "output_bash",
     output_base_name = "bash_test_two_strains",
@@ -398,7 +397,6 @@ call_variants_single_cell(
   job_base = "cell_vars",
   log_base = "slurm_cell_vars",
   temp_dir = "output/temp/cell_vars_59",
-  submit = TRUE,
   other_job_header_options = c("--time=05:00:00"),
   other_batch_options = c( # Just here as examples of things you might put
     "module purge",

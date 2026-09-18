@@ -57,4 +57,4 @@ elapsed_seconds=$((end_time - start_time))
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
 echo Elapsed seconds: $elapsed_seconds
 
-conda deactivate
+placeholder_conda_prefixconda deactivate

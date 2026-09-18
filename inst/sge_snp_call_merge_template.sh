@@ -17,20 +17,29 @@ start_time=$(date +%s)
 
 echo ${HOSTNAME} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
-conda activate scanBit_xkcd_1337
+placeholder_conda_prefixconda activate scanBit_xkcd_1337
 
-bcftools merge \
-        --threads 4 \
+
+merge_bcfs() {
+  bcftools merge \
+        --threads 3 \
         -O u \
         placeholder_bcf_dir/*.bcf \
     | bcftools view \
         -i 'GT[*]="alt"' \
         -O b \
-        --output placeholder_bcf_out
+    --output placeholder_bcf_out
 
 bcftools index \
-    --threads 4 \
+    --threads 3 \
     placeholder_bcf_out
+}
+
+export -f merge_bcfs
+
+touch placeholder_bcf_out
+
+placeholder_apptainermerge_bcfsplaceholder_end_apptainer
 
 end_time=$(date +%s)
 
@@ -39,4 +48,4 @@ elapsed_seconds=$((end_time - start_time))
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
 echo Elapsed seconds: $elapsed_seconds
 
-conda deactivate
+placeholder_conda_prefixconda deactivate

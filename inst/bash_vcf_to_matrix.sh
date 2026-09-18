@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e ### stops bash script if line ends with error
 
 placeholder_batch_other
@@ -7,9 +7,13 @@ start_time=$(date +%s)
 
 echo ${HOSTNAME} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
-conda activate scanBit_xkcd_1337
+placeholder_conda_prefixconda activate scanBit_xkcd_1337
 
-python \
+touch placeholder_n_comps_file
+touch placeholder_fig_file
+touch placeholder_groups_output
+
+placeholder_apptainerpython \
     placeholder_py_script \
         --processes 10 \
         --bcf placeholder_bcf_input \
@@ -21,7 +25,7 @@ python \
         --n_comps_file placeholder_n_comps_file \
         --dist_method placeholder_dist_method \
         --figure_file placeholder_fig_file placeholder_verbose \
-    > placeholder_groups_output
+    > placeholder_groups_outputplaceholder_end_apptainer
 
 end_time=$(date +%s)
 
@@ -30,4 +34,4 @@ elapsed_seconds=$((end_time - start_time))
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
 echo Elapsed seconds: $elapsed_seconds
 
-conda deactivate
+placeholder_conda_prefixconda deactivate

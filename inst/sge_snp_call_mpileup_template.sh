@@ -18,7 +18,7 @@ start_time=$(date +%s)
 
 echo ${HOSTNAME} ${SGE_TASK_ID} Beginning: $(date '+%Y-%m-%d %H:%M:%S')
 
-conda activate scanBit_xkcd_1337
+placeholder_conda_prefixconda activate scanBit_xkcd_1337
 
 cell_file_array=(placeholder_cell_files)
 cell_file=${cell_file_array[${SGE_TASK_ID} - 1]}
@@ -34,11 +34,18 @@ fi
 # each column will have a unique name
 label=${cell_file%%_cell_ids.txt}
 export label=${label##*/}
-export orig_samp_name=$(samtools view -H placeholder_bam_file | grep "SM:" | head -n 1 | perl -ne '/\tSM:(.+?)\t/; print $1')
+export orig_samp_name=$(placeholder_apptainersamtools view \
+    -H \
+    placeholder_bam_file \
+  | grep 'SM:' \
+  | head -n 1 \
+  | perl -pe 's/.+\tSM://' \
+  | perl -pe 's/\t.*$//'placeholder_end_apptainer)
 
 echo ${label} ${orig_samp_name}
 
-samtools view \
+call_snps() {
+  samtools view \
         -u \
         --threads 5 \
         --tag-file CB:${cell_file} \
@@ -63,7 +70,7 @@ samtools view \
     | bcftools filter \
         --threads 5 \
         -g 10 \
-        -e "FORMAT/DP<placeholder_min_depth" \
+        -e 'FORMAT/DP<placeholder_min_depth' \
         -O u \
     | bcftools view \
         --threads 5 \
@@ -71,9 +78,14 @@ samtools view \
         -O b \
         -o placeholder_bcf_dir/${label}.bcf
 
-bcftools index \
+  bcftools index \
     --threads 5 \
     placeholder_bcf_dir/${label}.bcf
+}
+
+export -f call_snps
+
+placeholder_apptainercall_snpsplaceholder_end_apptainer
 
 end_time=$(date +%s)
 
@@ -82,4 +94,4 @@ elapsed_seconds=$((end_time - start_time))
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
 echo Elapsed seconds: $elapsed_seconds
 
-conda deactivate
+placeholder_conda_prefixconda deactivate

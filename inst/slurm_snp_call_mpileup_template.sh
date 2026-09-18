@@ -34,7 +34,9 @@ fi
 # each column will have a unique name
 label=${cell_file%%_cell_ids.txt}
 export label=${label##*/}
-export orig_samp_name=$(placeholder_apptainersamtools view -H placeholder_bam_file \
+export orig_samp_name=$(placeholder_apptainersamtools view \
+    -H \
+    placeholder_bam_file \
   | grep 'SM:' \
   | head -n 1 \
   | perl -pe 's/.+\tSM://' \

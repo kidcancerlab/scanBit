@@ -5,8 +5,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
-##SBATCH --mem=10G # Figure this out later
 #SBATCH --wait
+##SBATCH --mem=10G # Figure this out later
 placeholder_job_header_other
 
 placeholder_batch_other
@@ -44,4 +44,4 @@ elapsed_seconds=$((end_time - start_time))
 echo Done: $(date '+%Y-%m-%d %H:%M:%S')
 echo Elapsed seconds: $elapsed_seconds
 
-conda deactivate
+placeholder_conda_prefixconda deactivate

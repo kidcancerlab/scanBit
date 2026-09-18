@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_job_log
-#SBATCH --error=placeholder_job_log
-#SBATCH --job-name=cell_var_calls
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
-#SBATCH --wait
-###SBATCH --mem=2G Figure this out
+#$ -cwd
+#$ -j y                                 # Error logging to single file
+#$ -o placeholder_job_log
+#$ -l mem_free=1G
+#$ -q placeholder_sge_q
+#$ -pe placeholder_sge_thread 10
+#$ -N chr_names
+#$ -sync y
 placeholder_job_header_other
 
 placeholder_batch_other

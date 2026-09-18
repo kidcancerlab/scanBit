@@ -1,14 +1,4 @@
 #!/bin/bash
-#SBATCH --account=placeholder_account
-#SBATCH --output=placeholder_job_log
-#SBATCH --error=placeholder_job_log
-#SBATCH --job-name scanBit_var
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=1G
-#SBATCH --wait
-placeholder_job_header_other
 
 placeholder_batch_other
 

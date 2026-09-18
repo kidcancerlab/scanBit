@@ -136,6 +136,11 @@ get_snp_tree <- function(
   }
   message("Using temporary directory: ", temp_dir)
 
+  # Check if the output directory exists, and if not, create it
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+
   bam_files <- unique(cellid_bam_table$bam_file)
 
   # Confirm that the bam files exist

@@ -115,7 +115,7 @@ use_job_template <- function(
       stringr::str_replace_all(
         job_template,
         pattern = replace_tibble$find[i],
-        replacement = replace_tibble$replace[i]
+        replacement = function(match) replace_tibble$replace[i]
       )
   }
 

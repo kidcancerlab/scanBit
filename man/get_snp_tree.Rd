@@ -30,7 +30,8 @@ get_snp_tree(
   sge_q = "all.q",
   sge_parallel_environment = "thread",
   job_scheduler = "slurm",
-  allow_chr_mismatch = FALSE
+  allow_chr_mismatch = FALSE,
+  use_apptainer = TRUE
 )
 }
 \arguments{
@@ -83,9 +84,9 @@ euclidian method calculates the euclidian distance between the samples
 based on the proportion of reference alleles at each site. The default is
 "binary".}
 
-\item{linkage_method}{The linkage method to use for hierarchical clustering.
-Can be "single", "complete", "average", "weighted", "centroid", "median",
-or "ward". The default is "ward".}
+\item{linkage_method}{The linkage method to use for hierarchical clustering
+for calculating the dendrogram. Can be "single", "complete", "average",
+"weighted", "centroid", "median", or "ward". The default is "ward".}
 
 \item{tree_image_type}{The type of image to use for the tree. Can be "png",
 or "pdf". This will be the file extension used for the tree image file.}

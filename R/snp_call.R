@@ -95,7 +95,8 @@ get_snp_tree <- function(
   sge_q = "all.q",
   sge_parallel_environment = "thread",
   job_scheduler = "slurm",
-  allow_chr_mismatch = FALSE
+  allow_chr_mismatch = FALSE,
+  use_apptainer = TRUE
 ) {
   check_cellid_bam_table(cellid_bam_table)
 
@@ -110,11 +111,24 @@ get_snp_tree <- function(
     stop("ref_fasta argument is required")
   }
 
-  ## Check that the conda command is available
-  check_cmd("conda")
-  # Check that conda environment scanBit_xkcd_1337 exists, and if not,
-  # create it
-  confirm_conda_env()
+  # If we use Apptainer, we do not need to check for the conda environment
+  if (!use_apptainer) {
+    ## Check that the conda command is available
+    check_cmd("conda")
+    # Check that conda environment scanBit_xkcd_1337 exists, and if not,
+    # create it
+    confirm_conda_env()
+  } else {
+    if (
+      !file.exists(
+        paste0(find.package("scanBit"), "/scanbit_container_latest.sif")
+      )
+    ) {
+      ask_to_download_container(
+        paste0(find.package("scanBit"), "/scanbit_container_latest.sif")
+      )
+    }
+  }
 
   # Check that temp_dir exists, and if not, create it
   if (!dir.exists(temp_dir)) {
@@ -150,7 +164,8 @@ get_snp_tree <- function(
     other_batch_options = other_batch_options,
     sge_q = sge_q,
     sge_parallel_environment = sge_parallel_environment,
-    job_scheduler = job_scheduler
+    job_scheduler = job_scheduler,
+    use_apptainer = use_apptainer
   )
 
   parallel::mclapply(
@@ -185,7 +200,8 @@ get_snp_tree <- function(
         other_batch_options = other_batch_options,
         sge_q = sge_q,
         sge_parallel_environment = sge_parallel_environment,
-        job_scheduler = job_scheduler
+        job_scheduler = job_scheduler,
+        use_apptainer = use_apptainer
       )
     }
   )
@@ -228,7 +244,8 @@ get_snp_tree <- function(
         other_batch_options = other_batch_options,
         sge_q = sge_q,
         sge_parallel_environment = sge_parallel_environment,
-        job_scheduler = job_scheduler
+        job_scheduler = job_scheduler,
+        use_apptainer = use_apptainer
       )
     }
   )
@@ -295,7 +312,8 @@ get_snp_tree <- function(
         other_batch_options = other_batch_options,
         sge_q = sge_q,
         sge_parallel_environment = sge_parallel_environment,
-        job_scheduler = job_scheduler
+        job_scheduler = job_scheduler,
+        use_apptainer = use_apptainer
       )
     }
   )
@@ -324,24 +342,26 @@ check_bam_chromosomes <- function(
   other_batch_options = "",
   sge_q,
   sge_parallel_environment,
-  job_scheduler = "slurm"
+  job_scheduler,
+  use_apptainer
 ) {
   chr_file <-
     tempfile(pattern = "chr_file_", tmpdir = temp_dir, fileext = ".txt")
 
   make_chr_file(
-    bam_files,
-    ref_fasta,
-    chr_file,
-    log_base,
-    job_base,
-    temp_dir,
-    submit = TRUE,
-    other_job_header_options,
-    other_batch_options,
-    sge_q,
-    sge_parallel_environment,
-    job_scheduler
+    bam_files = bam_files,
+    ref_fasta = ref_fasta,
+    chr_file = chr_file,
+    job_base = job_base,
+    log_base = log_base,
+    temp_dir = temp_dir,
+    submit = submit,
+    other_job_header_options = other_job_header_options,
+    other_batch_options = other_batch_options,
+    sge_q = sge_q,
+    sge_parallel_environment = sge_parallel_environment,
+    job_scheduler = job_scheduler,
+    use_apptainer = use_apptainer
   )
 
   chr_data <-
@@ -407,27 +427,50 @@ make_chr_file <- function(
   job_base,
   log_base,
   temp_dir,
-  submit = TRUE,
+  submit,
   other_job_header_options,
   other_batch_options,
   sge_q,
   sge_parallel_environment,
-  job_scheduler
+  job_scheduler,
+  use_apptainer
 ) {
   job_header_other <-
     make_header_other_string(other_job_header_options, job_scheduler)
 
+  # this makes two placeholders
+  # if using apptainer, we make the apptainer command and make a placeholder to
+  # comment out the conda activate command in the batch command since it's not
+  # needed. This function returns a list of these two
+  apptainer_placeholders <- get_apptainer_placeholders(
+    bound_items = c(
+      bam_files,
+      paste0(bam_files, ".bai"),
+      ref_fasta,
+      paste0(ref_fasta, ".fai"),
+      chr_file
+    ),
+    env_vars = c(
+      "ref_file",
+      "chr_file"
+    ),
+    use_apptainer = use_apptainer
+  )
+
   replace_tibble_snp <-
     tibble::tribble(
-      ~find                          , ~replace                                                                                   ,
-      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_bam_chrs-", get_job_id_str(job_scheduler), ".out")) ,
-      "placeholder_sge_q"            , sge_q                                                                                      ,
-      "placeholder_sge_thread"       , sge_parallel_environment                                                                   ,
-      "placeholder_job_header_other" , job_header_other                                                                           ,
-      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                               ,
-      "placeholder_bam_files"        , paste(bam_files, collapse = " ")                                                           ,
-      "placeholder_ref_fasta"        , ref_fasta                                                                                  ,
-      "placeholder_chr_file"         , chr_file                                                                                   ,
+      ~find                          , ~replace                                                                                   , # nolint
+      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_bam_chrs-", get_job_id_str(job_scheduler), ".out")) , # nolint
+      "placeholder_sge_q"            , sge_q                                                                                      , # nolint
+      "placeholder_sge_thread"       , sge_parallel_environment                                                                   , # nolint
+      "placeholder_job_header_other" , job_header_other                                                                           , # nolint
+      "placeholder_conda_prefix"     , apptainer_placeholders$conda_prefix                                                        , # nolint
+      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                               , # nolint
+      "placeholder_bam_files"        , paste(bam_files, collapse = " ")                                                           , # nolint
+      "placeholder_ref_fasta"        , ref_fasta                                                                                  , # nolint
+      "placeholder_chr_file"         , chr_file                                                                                   , # nolint
+      "placeholder_apptainer"        , apptainer_placeholders$apptainer_cmd                                                       , # nolint
+      "placeholder_end_apptainer"    , apptainer_placeholders$apptainer_cmd_end                                                   , # nolint
     )
 
   # Call mpileup on each bam using a template and substituting
@@ -477,7 +520,8 @@ call_snps <- function(
   other_batch_options = "",
   sge_q,
   sge_parallel_environment,
-  job_scheduler = "slurm"
+  job_scheduler,
+  use_apptainer
 ) {
   if (!file.exists(bam_to_use)) {
     stop("Bam file does not exist: ", bam_to_use)
@@ -533,27 +577,58 @@ call_snps <- function(
   } else {
     n_cores <- 100
   }
+
   parallel::mclapply(
     min_depth,
     mc.cores = n_cores,
     mc.preschedule = FALSE,
     function(this_min_depth) {
+      use_bound_items <- c(
+        bam_to_use,
+        paste0(bam_to_use, ".bai"),
+        ref_fasta,
+        paste0(ref_fasta, ".fai"),
+        paste0(bcf_dir, "_c", this_min_depth),
+        cell_files
+      )
+      # ploidy can either be a string (mm10) or a ploidy file
+      if (grepl("--ploidy-file", ploidy)) {
+        use_bound_items <-
+          c(
+            use_bound_items,
+            gsub("--ploidy-file ", "", ploidy)
+          )
+      }
+
+      apptainer_placeholders <- get_apptainer_placeholders(
+        bound_items = use_bound_items,
+        env_vars = c(
+          "cell_file",
+          "orig_sample_name",
+          "label"
+        ),
+        use_apptainer = use_apptainer
+      )
+
       replace_tibble_snp <-
         tibble::tribble(
-          ~find                          , ~replace                                                                                  ,
-          "placeholder_account"          , account                                                                                   ,
-          "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_mpileup-", get_job_id_str(job_scheduler), ".out")) ,
-          "placeholder_sge_q"            , sge_q                                                                                     ,
-          "placeholder_sge_thread"       , sge_parallel_environment                                                                  ,
-          "placeholder_job_header_other" , job_header_other                                                                          ,
-          "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                              ,
-          "placeholder_array_max"        , as.character(array_max)                                                                   ,
-          "placeholder_bam_file"         , bam_to_use                                                                                ,
-          "placeholder_cell_files"       , paste(cell_files, collapse = " ")                                                         ,
-          "placeholder_ref_fasta"        , ref_fasta                                                                                 ,
-          "placeholder_ploidy"           , ploidy                                                                                    ,
-          "placeholder_bcf_dir"          , paste0(bcf_dir, "_c", this_min_depth)                                                     ,
-          "placeholder_min_depth"        , as.character(this_min_depth)
+          ~find                          , ~replace                                                                                  , # nolint
+          "placeholder_account"          , account                                                                                   , # nolint
+          "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_mpileup-", get_job_id_str(job_scheduler), ".out")) , # nolint
+          "placeholder_sge_q"            , sge_q                                                                                     , # nolint
+          "placeholder_sge_thread"       , sge_parallel_environment                                                                  , # nolint
+          "placeholder_job_header_other" , job_header_other                                                                          , # nolint
+          "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                              , # nolint
+          "placeholder_conda_prefix"     , apptainer_placeholders$conda_prefix                                                       , # nolint
+          "placeholder_array_max"        , as.character(array_max)                                                                   , # nolint
+          "placeholder_bam_file"         , bam_to_use                                                                                , # nolint
+          "placeholder_cell_files"       , paste(cell_files, collapse = " ")                                                         , # nolint
+          "placeholder_ref_fasta"        , ref_fasta                                                                                 , # nolint
+          "placeholder_ploidy"           , ploidy                                                                                    , # nolint
+          "placeholder_bcf_dir"          , paste0(bcf_dir, "_c", this_min_depth)                                                     , # nolint
+          "placeholder_apptainer"        , apptainer_placeholders$apptainer_cmd                                                      , # nolint
+          "placeholder_end_apptainer"    , apptainer_placeholders$apptainer_cmd_end                                                  , # nolint
+          "placeholder_min_depth"        , as.character(this_min_depth) # nolint
         )
 
       # Call mpileup on each bam using a template and substituting
@@ -643,24 +718,40 @@ merge_bcfs <- function(
   other_batch_options = "",
   sge_q,
   sge_parallel_environment,
-  job_scheduler = "slurm"
+  job_scheduler = "slurm",
+  use_apptainer
 ) {
   job_header_other <-
     make_header_other_string(other_job_header_options, job_scheduler)
+
+  # this makes two placeholders
+  # if using apptainer, we make the apptainer command and make a placeholder to
+  # comment out the conda activate command in the batch command since it's not
+  # needed. This function returns a list of these two
+  apptainer_placeholders <- get_apptainer_placeholders(
+    bound_items = c(
+      gsub("split_bcfs_.+", "", bcf_in_dir),
+      out_bcf
+    ),
+    use_apptainer = use_apptainer
+  )
 
   # use template to merge bcfs and write out a distance matrix, substituting
   # out the placeholder fields
   replace_tibble_merge <-
     tibble::tribble(
-      ~find                          , ~replace                                                                                ,
-      "placeholder_account"          , account                                                                                 ,
-      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_merge-", get_job_id_str(job_scheduler), ".out")) ,
-      "placeholder_sge_q"            , sge_q                                                                                   ,
-      "placeholder_sge_thread"       , sge_parallel_environment                                                                ,
-      "placeholder_job_header_other" , job_header_other                                                                        ,
-      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                            ,
-      "placeholder_bcf_out"          , out_bcf                                                                                 ,
-      "placeholder_bcf_dir"          , bcf_in_dir
+      ~find                          , ~replace                                                                                , # nolint
+      "placeholder_account"          , account                                                                                 , # nolint
+      "placeholder_job_log"          , file.path(temp_dir, paste0(log_base, "_merge-", get_job_id_str(job_scheduler), ".out")) , # nolint
+      "placeholder_sge_q"            , sge_q                                                                                   , # nolint
+      "placeholder_sge_thread"       , sge_parallel_environment                                                                , # nolint
+      "placeholder_job_header_other" , job_header_other                                                                        , # nolint
+      "placeholder_batch_other"      , paste0(other_batch_options, collapse = "\n")                                            , # nolint
+      "placeholder_conda_prefix"     , apptainer_placeholders$conda_prefix                                                     , # nolint
+      "placeholder_apptainer"        , apptainer_placeholders$apptainer_cmd                                                    , # nolint
+      "placeholder_end_apptainer"    , apptainer_placeholders$apptainer_cmd_end                                                , # nolint
+      "placeholder_bcf_out"          , out_bcf                                                                                 , # nolint
+      "placeholder_bcf_dir"          , bcf_in_dir # nolint
     )
 
   # Call mpileup merge using a template and substituting
@@ -732,10 +823,26 @@ group_clusters_by_dist <- function(
   other_batch_options = "",
   sge_q,
   sge_parallel_environment,
-  job_scheduler = "slurm"
+  job_scheduler = "slurm",
+  use_apptainer
 ) {
   py_file <-
     paste0(find.package("scanBit"), "/exec/vcfToMatrix.py")
+
+  # this makes two placeholders
+  # if using apptainer, we make the apptainer command and make a placeholder to
+  # comment out the conda activate command in the batch command since it's not
+  # needed. This function returns a list of these two
+  apptainer_placeholders <- get_apptainer_placeholders(
+    bound_items = c(
+      py_file,
+      merged_bcf_file,
+      n_comps_file,
+      tree_figure_file,
+      output_file
+    ),
+    use_apptainer = use_apptainer
+  )
 
   verbose_setting <-
     dplyr::if_else(verbose, "--verbose", "")
@@ -745,25 +852,28 @@ group_clusters_by_dist <- function(
 
   replace_tibble_dist <-
     tibble::tribble(
-      ~find                             , ~replace                                                                        ,
-      "placeholder_account"             , account                                                                         ,
-      "placeholder_job_log"             , paste0(temp_dir, "/", log_base, "dist-", get_job_id_str(job_scheduler), ".out") ,
-      "placeholder_sge_q"               , sge_q                                                                           ,
-      "placeholder_sge_thread"          , sge_parallel_environment                                                        ,
-      "placeholder_job_header_other"    , job_header_other                                                                ,
-      "placeholder_batch_other"         , paste0(other_batch_options, collapse = "\n")                                    ,
-      "placeholder_py_script"           , py_file                                                                         ,
-      "placeholder_bcf_input"           , merged_bcf_file                                                                 ,
-      "placeholder_min_snvs"            , as.character(min_snvs_per_cluster)                                              ,
-      "placeholder_max_missing"         , as.character(max_prop_missing_at_site)                                          ,
-      "placeholder_n_bootstrap"         , as.character(n_bootstraps)                                                      ,
-      "placeholder_bootstrap_threshold" , as.character(bootstrap_cutoff)                                                  ,
-      "placeholder_linkage_method"      , linkage_method                                                                  ,
-      "placeholder_n_comps_file"        , n_comps_file                                                                    ,
-      "placeholder_fig_file"            , tree_figure_file                                                                ,
-      "placeholder_verbose"             , verbose_setting                                                                 ,
-      "placeholder_dist_method"         , dist_method                                                                     ,
-      "placeholder_groups_output"       , output_file
+      ~find                             , ~replace                                                                        , # nolint
+      "placeholder_account"             , account                                                                         , # nolint
+      "placeholder_job_log"             , paste0(temp_dir, "/", log_base, "dist-", get_job_id_str(job_scheduler), ".out") , # nolint
+      "placeholder_sge_q"               , sge_q                                                                           , # nolint
+      "placeholder_sge_thread"          , sge_parallel_environment                                                        , # nolint
+      "placeholder_job_header_other"    , job_header_other                                                                , # nolint
+      "placeholder_batch_other"         , paste0(other_batch_options, collapse = "\n")                                    , # nolint
+      "placeholder_conda_prefix"        , apptainer_placeholders$conda_prefix                                             , # nolint
+      "placeholder_apptainer"           , apptainer_placeholders$apptainer_cmd                                            , # nolint
+      "placeholder_end_apptainer"       , apptainer_placeholders$apptainer_cmd_end                                        , # nolint
+      "placeholder_py_script"           , py_file                                                                         , # nolint
+      "placeholder_bcf_input"           , merged_bcf_file                                                                 , # nolint
+      "placeholder_min_snvs"            , as.character(min_snvs_per_cluster)                                              , # nolint
+      "placeholder_max_missing"         , as.character(max_prop_missing_at_site)                                          , # nolint
+      "placeholder_n_bootstrap"         , as.character(n_bootstraps)                                                      , # nolint
+      "placeholder_bootstrap_threshold" , as.character(bootstrap_cutoff)                                                  , # nolint
+      "placeholder_linkage_method"      , linkage_method                                                                  , # nolint
+      "placeholder_n_comps_file"        , n_comps_file                                                                    , # nolint
+      "placeholder_fig_file"            , tree_figure_file                                                                , # nolint
+      "placeholder_verbose"             , verbose_setting                                                                 , # nolint
+      "placeholder_dist_method"         , dist_method                                                                     , # nolint
+      "placeholder_groups_output"       , output_file # nolint
     )
 
   # Call mpileup on each cell id file using a template and substituting

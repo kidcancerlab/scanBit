@@ -2,6 +2,7 @@
 
 export("%>%")
 export(add_snv_group_to_sobj)
+export(ask_to_download_container)
 export(assemble_tree_plots)
 export(calc_variant_variability)
 export(call_variants_single_cell)

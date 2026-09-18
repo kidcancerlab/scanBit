@@ -12,3 +12,12 @@ src/rust/target
 src/.cargo
 output
 exec/__pycache__
+*.sif
+*.bam
+*.bai
+*.bcf
+*.bcf.csi
+*.fa
+*.fai
+.bash_history
+.Rhistory

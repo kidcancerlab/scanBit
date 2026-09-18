@@ -13,3 +13,14 @@ output
 what_next.txt
 data-raw
 todo.md
+^.*.bam
+^.*.bam.bai
+^.*.bcf
+^.*.bcf.csi
+^.*.fa
+^.*.fai
+cell_barcode_table.tsv.gz
+b6_balbc_sobj.rds
+^.*.sif
+.bash_history
+.Rhistory

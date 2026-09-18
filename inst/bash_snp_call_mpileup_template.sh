@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e ### stops bash script if line ends with error
 
 placeholder_batch_other
@@ -21,21 +21,30 @@ fi
 # change the sample name during the mpileup call so that when we merge the bcfs
 # each column will have a unique name
 
-run_mpileup() {
+run_mpileup_one() {
   local cell_file=$1
 
   local label=${cell_file%%_cell_ids.txt}
   label=${label##*/}
 
-  local orig_samp_name=$(samtools view \
+  local orig_samp_name=$(placeholder_apptainersamtools view \
         -H \
         placeholder_bam_file \
-      | grep "SM:" \
+      | grep 'SM:' \
       | head -n 1 \
-      | perl -ne '/\tSM:(.+?)\t/; print $1')
+      | perl -pe 's/.+\tSM://' \
+      | perl -pe 's/\t.*$//'placeholder_end_apptainer)
 
   echo ${label} ${orig_samp_name}
 
+  placeholder_apptainerrun_mpileup ${cell_file} ${orig_samp_name} ${label} placeholder_end_apptainer
+}
+export -f run_mpileup_one
+
+run_mpileup() {
+  local cell_file=$1
+  local orig_samp_name=$2
+  local label=$3
   samtools view \
           -u \
           --threads 5 \
@@ -73,11 +82,10 @@ run_mpileup() {
       --threads 5 \
       placeholder_bcf_dir/${label}.bcf
 }
-
 export -f run_mpileup
 
 # limiting to 20% of CPU count since I'm telling bcftools to use 5 cpus.
-placeholder_apptainerparallel -j 20% run_mpileup ::: ${cell_file_array[@]}placeholder_end_apptainer
+parallel -j 20% run_mpileup_one ::: ${cell_file_array[@]}
 
 end_time=$(date +%s)
 

@@ -112,10 +112,11 @@ use_job_template <- function(
   # Replace placeholders with real data
   for (i in seq_len(nrow(replace_tibble))) {
     job_template <-
-      stringr::str_replace_all(
-        job_template,
+      gsub(
         pattern = replace_tibble$find[i],
-        replacement = function(match) replace_tibble$replace[i]
+        replacement = replace_tibble$replace[i],
+        x = job_template,
+        fixed = TRUE
       )
   }
 
